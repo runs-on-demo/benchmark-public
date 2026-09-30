@@ -10,8 +10,9 @@ runner can't misreport its own speed:
 
 Host facts (CPU model, disks, EC2 metadata) and hardware metrics come from the
 artifacts each job uploads: they are self-reported by the job. Runners in the
-plan that never produced a job are reported as "unavailable" so a missing
-provider is visible, not silently absent.
+plan whose job no runner picked up are reported as "unavailable" so a missing
+provider is visible, not silently absent. A planned job the workflow never
+created (a harness fault) is "cancelled": no runner was offered it.
 
 Status of a job that started:
 - success: every phase succeeded (a harness step failing afterwards doesn't
@@ -254,6 +255,7 @@ TIMED_OUT = re.compile(r"exceeded the maximum execution time", re.I)
 # A restore that found its entry, then lost it mid-download (see the module docstring).
 EVICTED = re.compile(r"The specified blob does not exist", re.I)
 EVICTED_REASON = "cache entry evicted by the harness repository's cache storage limit"
+NEVER_CREATED = "job never created by the workflow"
 UNFINISHED = ("in_progress", "queued", "pending", "waiting", None)
 
 
@@ -326,9 +328,15 @@ def summarize_job(planned, job, artifacts_dir, repo=None, fetch_logs=True):
         "arch": planned["arch"],
         "iteration": planned["iteration"],
     }
+    if not job:
+        # The workflow never created the job (a lane skipped, a matrix cut
+        # short): no runner was ever offered it, so it says nothing about one.
+        entry["status"] = "cancelled"
+        entry["reason"] = NEVER_CREATED
+        return entry
     if not job_started(job):
         entry["status"] = "unavailable"
-        entry["reason"] = "no runner picked up the job" if job else "job missing from run"
+        entry["reason"] = "no runner picked up the job"
         return entry
 
     phases, failed_phase, failed_step = [], None, None

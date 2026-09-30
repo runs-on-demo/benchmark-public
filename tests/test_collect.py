@@ -160,6 +160,11 @@ class Classify(unittest.TestCase):
         )
         self.assertEqual(e["status"], "failure")
 
+    def test_job_never_created_is_not_the_runners_doing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            e = collect.summarize_job(PLANNED, None, pathlib.Path(tmp), repo="o/r")
+        self.assertEqual((e["status"], e["reason"]), ("cancelled", collect.NEVER_CREATED))
+
     def test_never_started_is_unavailable(self):
         e = summarize({"id": 1, "conclusion": "cancelled", "started_at": None, "steps": []})
         self.assertEqual(e["status"], "unavailable")
