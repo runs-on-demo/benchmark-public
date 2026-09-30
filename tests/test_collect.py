@@ -45,9 +45,9 @@ def job(conclusion, steps):
     }
 
 
-def summarize(j, errors=None, log=None, unavailable=False):
+def summarize(j, errors=None, log=None, unavailable=False, warnings=None):
     # annotations() gives {} when the job raised none, None when the API failed.
-    notes = None if unavailable else ({"errors": errors} if errors else {})
+    notes = None if unavailable else {k: v for k, v in (("errors", errors), ("warnings", warnings)) if v}
     with mock.patch.object(collect, "annotations", return_value=notes), mock.patch.object(
         collect, "job_log", return_value=log
     ), tempfile.TemporaryDirectory() as tmp:
@@ -142,6 +142,23 @@ class Classify(unittest.TestCase):
         # Could be a timeout or a cancelled run: don't drop it on missing evidence.
         e = summarize(job("cancelled", [step(1, "phase: build", "cancelled")]), unavailable=True)
         self.assertEqual((e["status"], e["reason"]), ("failure", "unknown (annotations unavailable)"))
+
+    def test_cache_entry_evicted_mid_restore_measured_nothing(self):
+        # GitHub deleted the entry while it downloaded: the repository's cache
+        # storage limit, shared by every runner on GitHub's cache storage.
+        e = summarize(
+            job("failure", [step(1, "phase: cache save", "success"), step(2, "phase: cache restore", "failure")]),
+            errors=["Failed to restore cache entry. Exiting as fail-on-cache-miss is set. Input key: bench-r--1-1-1"],
+            warnings=["Failed to restore: The specified blob does not exist."],
+        )
+        self.assertEqual((e["status"], e["reason"]), ("cancelled", collect.EVICTED_REASON))
+
+    def test_blob_warning_outside_the_restore_is_still_a_failure(self):
+        e = summarize(
+            job("failure", [step(1, "phase: cache save", "failure")]),
+            warnings=["Failed to restore: The specified blob does not exist."],
+        )
+        self.assertEqual(e["status"], "failure")
 
     def test_never_started_is_unavailable(self):
         e = summarize({"id": 1, "conclusion": "cancelled", "started_at": None, "steps": []})

@@ -24,7 +24,11 @@ Status of a job that started:
   "cancelled", no phase was left unfinished, and the annotations, which could
   be read, don't say the runner was lost or the job timed out). If they
   couldn't be read, the job is a failure with reason "unknown (annotations
-  unavailable)" rather than dropped.
+  unavailable)" rather than dropped. Also a cache restore whose entry was
+  found, then deleted while it downloaded ("The specified blob does not
+  exist"): GitHub evicted it to keep this repository under its cache storage
+  limit, which every runner using GitHub's cache storage shares here. That
+  says nothing about the runner, and the job measured nothing.
 
 RunsOn results get `cost` (RunsOn's own per-job estimate, read from its
 control plane by bin/runs-on-costs.py, passed with --costs) when there is one;
@@ -247,6 +251,9 @@ RUNNER_LOST = re.compile(
     re.I,
 )
 TIMED_OUT = re.compile(r"exceeded the maximum execution time", re.I)
+# A restore that found its entry, then lost it mid-download (see the module docstring).
+EVICTED = re.compile(r"The specified blob does not exist", re.I)
+EVICTED_REASON = "cache entry evicted by the harness repository's cache storage limit"
 UNFINISHED = ("in_progress", "queued", "pending", "waiting", None)
 
 
@@ -269,6 +276,9 @@ def classify(conclusion, phases, notes):
         # Cancelling a run marks the running step "cancelled", never leaves it
         # in progress, so this holds whatever the job's conclusion says.
         return "failure", "runner lost"
+    warnings = " | ".join((notes or {}).get("warnings", []))
+    if EVICTED.search(warnings) and any(p["name"] == "cache restore" and p["status"] == "failure" for p in phases):
+        return "cancelled", EVICTED_REASON
     if conclusion == "cancelled":
         if notes is None:
             # A timeout or a lost runner also ends as "cancelled"; without the
