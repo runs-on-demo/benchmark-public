@@ -100,11 +100,11 @@ runners is flagged `"subset": true`, in the file and in `results/index.json`.
 ## Schedule
 
 Each measurement suite has a cron (smoke is dispatch-only), staggered so two
-suites don't share a provider's concurrency: Rust, TypeScript and Docker on
-Monday (03:00, 04:00, 05:00 UTC), hardware and cache on Tuesday (03:00,
-05:00), the burst alone on Wednesday at 15:00, EC2 storage on the 1st of each
-month at 10:00 and EC2 CPU on the 10th of each month at 10:00, an hour no
-weekly suite uses. Results also come from manual dispatches and trigger-file
+suites never share a provider's concurrency. While the first results build up,
+the suites run every three days: Rust, TypeScript and Docker on day one (02:00,
+04:00, 06:00 UTC), hardware and cache on day two (02:00, 04:00), the burst
+alone on day three at 15:00. EC2 storage runs on the 1st of each month and EC2
+CPU on the 10th, both at 10:00, an hour no other suite uses. Results also come from manual dispatches and trigger-file
 pushes; `selection.origin.event` says which.
 A scheduled run always uses the suite's default runners and ignores the
 trigger files.
