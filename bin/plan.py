@@ -24,11 +24,19 @@ Iterations are capped (MAX_ITERATIONS). Private repositories get `labelPrivate`
 where a runner defines one (GitHub's free `ubuntu-24.04` runner is 4 vCPU only
 for public repositories).
 
-Writes `run=true|false`, `matrix=<json>`, `shards` and the resolved `runners`,
-`arch`, `iterations` to $GITHUB_OUTPUT (or the matrix to stdout) and the full
+Writes `run=true|false`, `matrix=<json>`, `shared=<json>`, `shards` and the
+resolved `runners`, `arch`, `iterations` to $GITHUB_OUTPUT (or the matrix to
+stdout) and the full
 plan to plan.json, which the publish job uses to report runners that never
 started. plan.json's `selection` records whether the run covered the suite's
 default runners (`subset: false`) or only some of them.
+
+Cache jobs that store in this repository's own GitHub cache storage
+(actions/cache on a provider that doesn't reroute it) go to `shared`, every
+other job to `matrix`; either is empty ("") when it has no job. That storage
+is capped per repository (10 GB by default) and GitHub evicts entries past the
+cap, even one another job is still restoring: cache.yml runs the shared jobs
+two at a time (4 GiB each), the others all at once.
 """
 import argparse
 import json
@@ -37,6 +45,22 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# Providers whose runners send actions/cache to their own storage, with no
+# workflow change or with the label and step the catalog already gives
+# (RunsOn: extras=s3-cache and runs-on/action). A runner can say otherwise
+# with `githubCacheStorage` (Warpbuild's Apple Silicon runners store in
+# GitHub's).
+REROUTES_ACTIONS_CACHE = {"RunsOn", "Blacksmith", "Ubicloud", "Warpbuild"}
+
+
+def github_cache_storage(runner) -> bool:
+    """The job's cache entry lands in this repository's GitHub cache storage."""
+    if runner.get("cacheAction") != "actions/cache":
+        return False
+    if "githubCacheStorage" in runner:
+        return bool(runner["githubCacheStorage"])
+    return runner["provider"] not in REROUTES_ACTIONS_CACHE
 
 # Jobs per runner a suite runs when nothing asks otherwise. The burst queues 15
 # jobs per runner at once: that is the measurement, not a repeat count.
@@ -247,6 +271,7 @@ def main() -> int:
                     "label": label,
                     "iteration": iteration,
                     "cacheAction": runner.get("cacheAction", ""),
+                    **({"shared": True} if github_cache_storage(runner) else {}),
                 }
             )
 
@@ -278,9 +303,12 @@ def main() -> int:
     }
     pathlib.Path(args.out).write_text(json.dumps(plan, indent=2) + "\n")
 
-    matrix = json.dumps({"include": include}, separators=(",", ":"))
+    def lane(jobs):
+        return json.dumps({"include": jobs}, separators=(",", ":")) if jobs else ""
+
+    matrix = lane([j for j in include if not j.get("shared")])
     if os.environ.get("GITHUB_OUTPUT"):
-        write_output(run="true", matrix=matrix)
+        write_output(run="true", matrix=matrix, shared=lane([j for j in include if j.get("shared")]))
     else:
         print(matrix)
     subset = f", subset: {len(missing)} of {len(defaults)} default runners left out" if missing else ""

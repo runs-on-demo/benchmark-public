@@ -119,6 +119,26 @@ class Ec2Cpu(unittest.TestCase):
             self.assertFalse(plan["selection"]["subset"])
             self.assertTrue(all("{run_id}" not in j["label"] for j in plan["jobs"]))
 
+    def test_github_cache_storage_jobs_go_to_the_shared_lane(self):
+        # Their 4 GiB entries share the repository's cache storage cap: never all at once.
+        rc, out, plan, _ = run_plan("cache")
+        self.assertEqual(rc, 0)
+        lanes = {k: [j["key"] for j in json.loads(out[k])["include"]] if out.get(k) else [] for k in ("matrix", "shared")}
+        self.assertEqual(sorted(lanes["matrix"] + lanes["shared"]), sorted(j["key"] for j in plan["jobs"]))
+        shared = {j["id"] for j in plan["jobs"] if j.get("shared")}
+        self.assertIn("github-x64.actions-cache", shared)
+        self.assertIn("namespace-x64.actions-cache", shared)
+        self.assertIn("warpbuild-arm64-xfast.actions-cache", shared)
+        self.assertNotIn("warpbuild-arm64-xfast.warpbuilds-cache", shared)
+        self.assertNotIn("warpbuild-x64.actions-cache", shared)
+        self.assertNotIn("blacksmith-x64.actions-cache", shared)
+        self.assertFalse(any(j["provider"] == "RunsOn" for j in plan["jobs"] if j.get("shared")))
+
+    def test_other_suites_have_no_shared_lane(self):
+        rc, out, _, _ = run_plan("rust")
+        self.assertEqual((rc, out.get("shared")), (0, ""))
+        self.assertTrue(out.get("matrix"))
+
     def test_trigger_at_rest_runs_nothing(self):
         trigger = json.loads((ROOT / "triggers" / "ec2-cpu.json").read_text())
         rc, out, plan, _ = run_plan("ec2-cpu", trigger, event="push")
