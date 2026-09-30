@@ -1,0 +1,223 @@
+name: TypeScript build (opencode)
+
+on:
+  # Staggered so suites never share a provider's concurrency (burst runs alone,
+  # mid-week, at a busy hour). Schedules only fire on the default branch.
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "default (the suite's runners; also when empty), all, or comma-separated runner ids from config/runners.json"
+        required: false
+        default: ""
+      arch:
+        description: "all, x64 or arm64 (empty: all). Trigger files are read on push only"
+        required: false
+        default: ""
+      iterations:
+        description: "Runs per runner, at most 5 (empty: 1)"
+        required: false
+        default: ""
+  push:
+    branches: [main, harness]
+    paths:
+      - triggers/node.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    # The first push of a new branch matches every paths filter: never a run.
+    if: github.event_name != 'push' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - id: plan
+        # Inputs go through env, never into the script text.
+        env:
+          SUITE: node
+          RUNNERS: ${{ inputs.runners }}
+          ARCH: ${{ inputs.arch }}
+          ITERATIONS: ${{ inputs.iterations }}
+          EVENT: ${{ github.event_name }}
+          PRIVATE: ${{ github.event.repository.private }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -n "$PRIVATE" ] || PRIVATE=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          python3 bin/plan.py --suite "$SUITE" \
+            --runners "$RUNNERS" --arch "$ARCH" --iterations "$ITERATIONS" \
+            --trigger "triggers/$SUITE.json" --event "$EVENT" \
+            --private "$PRIVATE" --out plan.json
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plan
+          path: plan.json
+
+  bench:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 30
+    env:
+      REPO_URL: https://github.com/anomalyco/opencode.git
+      COMMIT: 08fb47373509ba64b13441061314eeacf4264f51
+      BUN_VERSION: 1.3.14
+      NODE_VERSION: 24.14.1
+      NODE_GYP_VERSION: 13.0.2
+      CI: "true"
+      OPENCODE_DISABLE_SHARE: "true"
+      TURBO_TELEMETRY_DISABLED: "1"
+      TYPECHECK_CONCURRENCY: "4"
+    steps:
+      - id: harness
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          path: .harness
+          persist-credentials: false
+      - name: Host info
+        uses: ./.harness/.github/actions/bench-start
+      - name: Isolate caches
+        run: |
+          # Fresh Bun and home dirs so no pre-baked cache on the image helps.
+          echo "BUN_INSTALL=$RUNNER_TEMP/bun" >> "$GITHUB_ENV"
+          echo "BUN_INSTALL_CACHE_DIR=$RUNNER_TEMP/bun-cache" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/bun/bin" >> "$GITHUB_PATH"
+          mkdir -p "$RUNNER_TEMP/bun/bin" "$RUNNER_TEMP/bun-cache"
+      - name: "phase: toolchain"
+        run: |
+          case "$(uname -m)" in
+            x86_64) asset=bun-linux-x64-baseline; node_arch=linux-x64 ;;
+            aarch64) asset=bun-linux-aarch64; node_arch=linux-arm64 ;;
+          esac
+          curl -fsSL -o "$RUNNER_TEMP/bun.zip" \
+            "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${asset}.zip"
+          unzip -q -j "$RUNNER_TEMP/bun.zip" "${asset}/bun" -d "$BUN_INSTALL/bin"
+          chmod +x "$BUN_INSTALL/bin/bun"
+          # Same rule as the DAX script: keep a preinstalled Node, install one otherwise.
+          if ! command -v node >/dev/null; then
+            curl -fsSL "https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-${node_arch}.tar.gz" \
+              | sudo tar -xz --strip-components=1 -C /usr/local
+          fi
+          bun --version; node --version
+      - name: Native build tools
+        run: |
+          # opencode's install compiles native modules (tree-sitter-*), which
+          # bun builds with node-gyp from PATH. Some images ship it, some don't
+          # (Warpbuild's Ubuntu 26.04, Namespace, some EC2 AMIs), and without it
+          # the install either fails or, on a retry, silently skips the native
+          # build. Same pinned node-gyp everywhere, untimed.
+          npm install -g --prefix "$RUNNER_TEMP/npm-global" "node-gyp@${NODE_GYP_VERSION}" >/dev/null
+          echo "$RUNNER_TEMP/npm-global/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/npm-global/bin/node-gyp" --version
+      - name: "phase: clone"
+        run: |
+          mkdir work && cd work
+          git init -q
+          git remote add origin "$REPO_URL"
+          git fetch -q --depth=1 origin "$COMMIT"
+          git checkout -q --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$COMMIT"
+      - name: "phase: bun install"
+        working-directory: work
+        run: |
+          # bun sometimes truncates drizzle-orm's ~50 MB registry manifest
+          # ("PackageFailedToParse"); on Avrea, every time so far. Retry, and record the
+          # attempts so a retried install is visible in the results. bun caches
+          # the truncated manifest, so each retry starts from an empty cache:
+          # otherwise it re-reads the same broken copy and fails at once.
+          ok=0
+          for attempts in 1 2 3; do
+            if bun install; then ok=1; break; fi
+            echo "::warning::bun install attempt $attempts failed"
+            rm -rf "${BUN_INSTALL_CACHE_DIR:?}" node_modules
+            sleep $((attempts * 5))
+          done
+          if [ "$ok" != 1 ]; then
+            # Is the registry response cut short on this network, or only in
+            # bun's client? Fetch the same manifest with curl and say which.
+            for accept in "application/vnd.npm.install-v1+json" "application/json"; do
+              out=$(curl -sS --compressed -H "Accept: $accept" -o "$RUNNER_TEMP/drizzle.json" \
+                -w 'HTTP %{http_code}, %{size_download} bytes, HTTP/%{http_version}' \
+                https://registry.npmjs.org/drizzle-orm 2>&1) || out="curl failed: $out"
+              if python3 -c 'import json, sys; json.load(open(sys.argv[1]))' "$RUNNER_TEMP/drizzle.json" 2>/dev/null; then v="complete JSON"; else v="truncated or invalid JSON"; fi
+              echo "::warning::drizzle-orm manifest fetched with curl ($accept): $out, $v"
+            done
+          fi
+          python3 - "$attempts" <<'PY'
+          import json, os, pathlib, sys
+          path = pathlib.Path(os.environ["RUNNER_TEMP"], "bench", "metrics.json")
+          data = json.loads(path.read_text()) if path.exists() else {}
+          data.setdefault("node", {})["installAttempts"] = int(sys.argv[1])
+          path.write_text(json.dumps(data))
+          PY
+          [ "$ok" = 1 ]
+          git diff --exit-code -- bun.lock package.json
+      - name: "phase: typecheck"
+        working-directory: work
+        run: |
+          # `bun typecheck` is `bun turbo typecheck`. Turbo's default runs ~10
+          # tsgo processes at once, which needs more than 16 GB and gets
+          # OOM-killed on runners without swap. 4 tasks fit, on every size.
+          free -m | awk '/Mem:/{print $3}' > "$RUNNER_TEMP/mem.log"
+          ( while true; do free -m | awk '/Mem:/{print $3}'; sleep 1; done ) >> "$RUNNER_TEMP/mem.log" &
+          sampler=$!
+          status=0
+          bun turbo typecheck --concurrency="$TYPECHECK_CONCURRENCY" || status=$?
+          kill "$sampler" 2>/dev/null || true
+          python3 - <<'PY'
+          import json, os, pathlib
+          tmp = pathlib.Path(os.environ["RUNNER_TEMP"])
+          used = [int(x) for x in (tmp / "mem.log").read_text().split() if x.isdigit()]
+          path = tmp / "bench" / "metrics.json"
+          data = json.loads(path.read_text()) if path.exists() else {}
+          node = data.setdefault("node", {})
+          node["typecheckConcurrency"] = int(os.environ["TYPECHECK_CONCURRENCY"])
+          node["typecheckPeakUsedMiB"] = max(used) if used else None
+          path.write_text(json.dumps(data))
+          PY
+          exit "$status"
+      - name: Upload
+        if: always() && steps.harness.outcome == 'success'
+        uses: ./.harness/.github/actions/bench-finish
+        with:
+          key: ${{ matrix.key }}
+
+  publish:
+    needs: [plan, bench]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      # Annotations (check runs) carry the job's error message.
+      checks: read
+      # GitHub OIDC token for the read-only RunsOn cost role (publish action).
+      id-token: write
+    concurrency:
+      group: publish-results-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      # Keeps its credentials: the publish step pushes results.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: ./.github/actions/publish
+        with:
+          dispatch-token: ${{ secrets.SITE_DISPATCH_TOKEN }}
+          cost-reader-role: ${{ vars.AWS_COST_READER_ROLE_ARN }}
+          runs-on-log-group: ${{ vars.RUNS_ON_LOG_GROUP }}
+          aws-region: ${{ vars.AWS_REGION }}

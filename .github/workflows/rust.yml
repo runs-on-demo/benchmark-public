@@ -1,0 +1,146 @@
+name: Rust build (spotify-player)
+
+on:
+  # Staggered so suites never share a provider's concurrency (burst runs alone,
+  # mid-week, at a busy hour). Schedules only fire on the default branch.
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "default (the suite's runners; also when empty), all, or comma-separated runner ids from config/runners.json"
+        required: false
+        default: ""
+      arch:
+        description: "all, x64 or arm64 (empty: all). Trigger files are read on push only"
+        required: false
+        default: ""
+      iterations:
+        description: "Runs per runner, at most 5 (empty: 1)"
+        required: false
+        default: ""
+  push:
+    branches: [main, harness]
+    paths:
+      - triggers/rust.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    # The first push of a new branch matches every paths filter: never a run.
+    if: github.event_name != 'push' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - id: plan
+        # Inputs go through env, never into the script text.
+        env:
+          SUITE: rust
+          RUNNERS: ${{ inputs.runners }}
+          ARCH: ${{ inputs.arch }}
+          ITERATIONS: ${{ inputs.iterations }}
+          EVENT: ${{ github.event_name }}
+          PRIVATE: ${{ github.event.repository.private }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -n "$PRIVATE" ] || PRIVATE=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          python3 bin/plan.py --suite "$SUITE" \
+            --runners "$RUNNERS" --arch "$ARCH" --iterations "$ITERATIONS" \
+            --trigger "triggers/$SUITE.json" --event "$EVENT" \
+            --private "$PRIVATE" --out plan.json
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plan
+          path: plan.json
+
+  bench:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 45
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_FEATURES: "rodio-backend,media-control,image,notify,fzf"
+    steps:
+      - id: harness
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          path: .harness
+          persist-credentials: false
+      - name: Host info
+        uses: ./.harness/.github/actions/bench-start
+      - name: "phase: checkout"
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: aome510/spotify-player
+          ref: 7dc9d17a7bf5671eb6129fdf9127729f659637fc
+          path: work
+          persist-credentials: false
+      - name: "phase: system packages"
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+            build-essential pkg-config libssl-dev libasound2-dev libdbus-1-dev \
+            libxcb-shape0-dev libxcb-xfixes0-dev
+      - name: "phase: toolchain"
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, 2026-09-30
+        with:
+          toolchain: 1.98.1
+          components: clippy, rustfmt
+      - name: "phase: cargo fmt"
+        working-directory: work
+        run: cargo fmt --all -- --check
+      - name: "phase: cargo test"
+        working-directory: work
+        run: cargo test --no-default-features --features "$RUST_FEATURES"
+      - name: "phase: cargo clippy"
+        working-directory: work
+        run: cargo clippy --no-default-features --features "$RUST_FEATURES" -- -D warnings
+      - name: "phase: cargo clippy (no features)"
+        working-directory: work
+        run: cargo clippy --no-default-features -- -D warnings
+      - name: Upload
+        if: always() && steps.harness.outcome == 'success'
+        uses: ./.harness/.github/actions/bench-finish
+        with:
+          key: ${{ matrix.key }}
+
+  publish:
+    needs: [plan, bench]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      # Annotations (check runs) carry the job's error message.
+      checks: read
+      # GitHub OIDC token for the read-only RunsOn cost role (publish action).
+      id-token: write
+    concurrency:
+      group: publish-results-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      # Keeps its credentials: the publish step pushes results.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: ./.github/actions/publish
+        with:
+          dispatch-token: ${{ secrets.SITE_DISPATCH_TOKEN }}
+          cost-reader-role: ${{ vars.AWS_COST_READER_ROLE_ARN }}
+          runs-on-log-group: ${{ vars.RUNS_ON_LOG_GROUP }}
+          aws-region: ${{ vars.AWS_REGION }}

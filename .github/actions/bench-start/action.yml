@@ -1,0 +1,25 @@
+name: Bench start
+description: Record the host before the workload touches it.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/bench"
+        python3 "$GITHUB_ACTION_PATH/../../../bin/host-info.py" > "$RUNNER_TEMP/bench/host.json" || true
+        python3 - <<'PY'
+        import json, os
+        h = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "bench", "host.json")))
+        s = h.get("storage") or {}
+        w = s.get("workspace") or {}
+        d = s.get("docker") or {}
+        ec2 = h.get("ec2") or {}
+        print(f"cpu      {h['cpu']['model']} x{h['cpu']['logicalCpus']}, {h.get('memoryGiB')} GiB")
+        print(f"workspace {w.get('fstype')} on {w.get('source')} ({w.get('freeGiB')} GiB free of {w.get('sizeGiB')})")
+        print(f"docker   {d.get('fstype')} on {d.get('source')} ({d.get('freeGiB')} GiB free)")
+        if ec2.get("instanceType"):
+            print(f"ec2      {ec2['instanceType']} {ec2.get('lifecycle')} {ec2.get('availabilityZone')} {ec2.get('amiId')}")
+        ro = h.get("runsOn") or {}
+        if ro.get("version"):
+            print(f"runs-on  {ro['version']} ({ro.get('stackName')}), image {ro.get('amiId')}")
+        PY

@@ -1,0 +1,163 @@
+name: Burst queue
+
+on:
+  # Staggered so suites never share a provider's concurrency (burst runs alone,
+  # mid-week, at a busy hour). Schedules only fire on the default branch.
+  schedule:
+    - cron: "0 15 * * 3"
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "default (the suite's runners; also when empty), all, or comma-separated runner ids from config/runners.json"
+        required: false
+        default: ""
+      arch:
+        description: "all, x64 or arm64 (empty: all). Trigger files are read on push only"
+        required: false
+        default: ""
+      iterations:
+        description: "Jobs per runner, 1 to 15 (empty: 15)"
+        required: false
+        default: ""
+      shard:
+        description: "Shard to run (1-based); each run starts the next one when it publishes"
+        required: false
+        default: "1"
+      origin:
+        description: "Set by the previous shard (event:source:run id of the chain's first run); leave empty"
+        required: false
+        default: ""
+  push:
+    branches: [main, harness]
+    paths:
+      - triggers/burst.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: burst-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    # The first push of a new branch matches every paths filter: never a run.
+    if: github.event_name != 'push' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      shards: ${{ steps.plan.outputs.shards }}
+      runners: ${{ steps.plan.outputs.runners }}
+      arch: ${{ steps.plan.outputs.arch }}
+      iterations: ${{ steps.plan.outputs.iterations }}
+      origin: ${{ steps.plan.outputs.origin }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - id: plan
+        # Inputs go through env, never into the script text.
+        env:
+          SUITE: burst
+          RUNNERS: ${{ inputs.runners }}
+          ARCH: ${{ inputs.arch }}
+          ITERATIONS: ${{ inputs.iterations }}
+          EVENT: ${{ github.event_name }}
+          PRIVATE: ${{ github.event.repository.private }}
+          SHARD: ${{ inputs.shard || '1' }}
+          ORIGIN: ${{ inputs.origin }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -n "$PRIVATE" ] || PRIVATE=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          python3 bin/plan.py --suite "$SUITE" \
+            --runners "$RUNNERS" --arch "$ARCH" --iterations "$ITERATIONS" \
+            --trigger "triggers/$SUITE.json" --event "$EVENT" \
+            --private "$PRIVATE" --out plan.json \
+            --shard "$SHARD" --origin "$ORIGIN"
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plan
+          path: plan.json
+
+  bench:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 30
+    steps:
+      - id: harness
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          path: .harness
+          persist-credentials: false
+      - name: Host info
+        uses: ./.harness/.github/actions/bench-start
+      - name: "phase: hold"
+        # Hold the runner so the burst stays concurrent: a provider can't
+        # recycle one runner through the whole matrix.
+        run: sleep 60
+      - name: Upload
+        if: always() && steps.harness.outcome == 'success'
+        uses: ./.harness/.github/actions/bench-finish
+        with:
+          key: ${{ matrix.key }}
+
+  publish:
+    needs: [plan, bench]
+    # A cancelled burst shard is not a burst: publish nothing.
+    if: "!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.run == 'true'"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      # Annotations (check runs) carry the job's error message.
+      checks: read
+      # GitHub OIDC token for the read-only RunsOn cost role (publish action).
+      id-token: write
+    concurrency:
+      group: publish-results-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      # Keeps its credentials: the publish step pushes results.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: ./.github/actions/publish
+        with:
+          dispatch-token: ${{ secrets.SITE_DISPATCH_TOKEN }}
+          cost-reader-role: ${{ vars.AWS_COST_READER_ROLE_ARN }}
+          runs-on-log-group: ${{ vars.RUNS_ON_LOG_GROUP }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+  next-shard:
+    # Shards run one after another so they never add up on a provider.
+    needs: [plan, publish]
+    # Cancelling a shard, or a shard that could not publish, stops the chain.
+    if: "!cancelled() && needs.publish.result == 'success' && fromJSON(needs.plan.outputs.shards || '0') > fromJSON(inputs.shard || '1')"
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      # The next shard gets the selection this shard resolved (not the raw
+      # inputs), so a scheduled chain stays on the default runners and never
+      # falls back to a trigger file edited in the meantime. `origin` keeps the
+      # first shard's event and source, so every shard's result file says how
+      # the chain started (not "workflow_dispatch" 38 times).
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          SHARD: ${{ inputs.shard || '1' }}
+          SHARDS: ${{ needs.plan.outputs.shards }}
+          RUNNERS: ${{ needs.plan.outputs.runners }}
+          ARCH: ${{ needs.plan.outputs.arch }}
+          ITERATIONS: ${{ needs.plan.outputs.iterations }}
+          ORIGIN: ${{ needs.plan.outputs.origin }}
+        run: |
+          NEXT=$((SHARD + 1))
+          gh workflow run burst.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" \
+            -f shard="$NEXT" -f runners="$RUNNERS" -f arch="$ARCH" -f iterations="$ITERATIONS" \
+            -f origin="$ORIGIN"
+          echo "started shard $NEXT of $SHARDS"

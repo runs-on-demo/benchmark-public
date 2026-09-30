@@ -1,0 +1,62 @@
+{
+  "smoke": {
+    "name": "Smoke",
+    "description": "Picks up a job and records the host. Used to check which runner labels this repository can reach."
+  },
+  "hardware": {
+    "name": "Runner hardware",
+    "description": "CPU (sysbench, 7-Zip, PassMark), memory bandwidth, disk (fio in the job workspace), network downloads, a docker pull, and pgbench against a PostgreSQL service container."
+  },
+  "ec2-storage": {
+    "name": "EC2 storage options",
+    "description": "The hardware suite on EC2 instance types that differ only or mostly by storage: EBS gp3 at default and provisioned throughput, local NVMe instance store at several sizes, and tmpfs (RunsOn YOLO mode)."
+  },
+  "ec2-cpu": {
+    "name": "EC2 CPU",
+    "description": "The hardware suite's CPU groups only (sysbench single and multi-thread, 7-Zip, PassMark PerformanceTest CPU tests) on one instance per EC2 type, at the smallest 2 vCPU size (.large, or .medium for burstable t types), spot, EBS or local NVMe as the type comes. It measures EC2 CPU per instance type, not a CI runner, so its runners never join a race suite. It is the open replacement for the earlier private EC2 CPU sweep, and covers the same instance types. PassMark 'CPU Single Threaded' (metrics.cpu.passmarkSingle, million operations per second) is the figure that sweep recorded as 'speed': same test, same unit. Settings differ: that sweep ran pt_linux with 1 process, 5 iterations and short test duration; this suite runs it with one process per vCPU, 2 iterations and medium duration (the process count only affects the multi-threaded tests and CPU Mark). The earlier private sweep ran V11 (11.0.1002) on x64 and V10.2 (10.2.1003) on Graviton; the harness's single-threaded figures match it within about 1% on both.",
+    "groups": [
+      "cpu",
+      "passmark"
+    ],
+    "passmark": "PassMark PerformanceTest Linux V11 (latest V11 build from passmark.com), pt_linux -r 1 -i 2 -p <vCPUs> -d 2",
+    "metric": "metrics.cpu.passmarkSingle"
+  },
+  "rust": {
+    "name": "Rust: spotify-player",
+    "description": "Cold build of aome510/spotify-player, the project Namespace uses for its own Rust caching benchmark: checkout, apt dependencies, toolchain install, cargo fmt, cargo test, and two cargo clippy passes. No cache.",
+    "repository": "https://github.com/aome510/spotify-player",
+    "ref": "7dc9d17a7bf5671eb6129fdf9127729f659637fc",
+    "toolchain": "rust 1.98.1"
+  },
+  "node": {
+    "name": "TypeScript: opencode",
+    "description": "Cold clone, bun install and typecheck of anomalyco/opencode, at the commit and Bun version ComputeSDK's DAX sandbox benchmark uses. Unlike DAX, typecheck runs `turbo typecheck --concurrency=4` on every runner, whatever its size: turbo's default parallelism needs more than 16 GB and gets OOM-killed on runners without swap. Totals are therefore not directly comparable with DAX.",
+    "repository": "https://github.com/anomalyco/opencode",
+    "ref": "08fb47373509ba64b13441061314eeacf4264f51",
+    "toolchain": "bun 1.3.14, node-gyp 13.0.2 on PATH (native modules built on every runner)",
+    "reference": "https://www.computesdk.com/benchmarks/sandboxes/dax",
+    "typecheck": "bun turbo typecheck --concurrency=4"
+  },
+  "docker": {
+    "name": "Docker: PostHog image",
+    "description": "docker buildx build of PostHog's production Dockerfile from a pinned commit, with no build cache: frontend and plugin-server builds, Python dependencies, and layer assembly. The source is fetched first, shallow (depth 1, no tags), in its own timed 'fetch source' phase, and the build uses that local checkout as its context.",
+    "repository": "https://github.com/PostHog/posthog",
+    "ref": "ba81ecf8f5bccbaee4ec5a1613780e0acfd7585b",
+    "source": "shallow fetch (depth 1, no tags) in the 'fetch source' phase; local build context"
+  },
+  "burst": {
+    "name": "Burst queue",
+    "description": "A burst of 15 identical jobs per runner, all queued at the same instant, each holding its runner for 60 seconds. Queue time shows how fast a provider absorbs a spike: how quickly it scales, and the concurrency limits of the plan this account is on. Runs on its own, never alongside another suite, in shards of one runner per provider, one shard after another (a provider's x64 and arm64 runners never share a shard, since some providers cap concurrency per account).",
+    "holdSeconds": 60,
+    "shards": "one runner per provider per shard (a provider's x64 and arm64 runners in different shards)"
+  },
+  "cache": {
+    "name": "Cache save and restore, 4 GB",
+    "description": "A 4 GB random file saved with a cache action, deleted, restored right away on the same runner, and checked to be complete: actions/cache (GitHub's cache service, or whatever the provider routes it to) and the provider's own cache action where the provider still recommends one (Blacksmith archived useblacksmith/cache: actions/cache is routed to its cache). No pause between save and restore, so a cache that isn't read-after-write consistent shows up as a failure. File generation is not timed.",
+    "sizeGiB": 4,
+    "actions": {
+      "actions/cache": "v6.1.0",
+      "WarpBuilds/cache": "v2.0.0"
+    }
+  }
+}

@@ -1,0 +1,154 @@
+name: Cache save and restore
+
+on:
+  # Staggered with the other suites; schedules only fire on the default branch.
+  schedule:
+    - cron: "0 5 * * 2"
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "default (the suite's runners; also when empty), all, or comma-separated runner ids from config/runners.json"
+        required: false
+        default: ""
+      arch:
+        description: "all, x64 or arm64 (empty: all). Trigger files are read on push only"
+        required: false
+        default: ""
+      iterations:
+        description: "Runs per runner, at most 5 (empty: 1)"
+        required: false
+        default: ""
+  push:
+    branches: [main, harness]
+    paths:
+      - triggers/cache.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cache-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    # The first push of a new branch matches every paths filter: never a run.
+    if: github.event_name != 'push' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - id: plan
+        # Inputs go through env, never into the script text.
+        env:
+          SUITE: cache
+          RUNNERS: ${{ inputs.runners }}
+          ARCH: ${{ inputs.arch }}
+          ITERATIONS: ${{ inputs.iterations }}
+          EVENT: ${{ github.event_name }}
+          PRIVATE: ${{ github.event.repository.private }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -n "$PRIVATE" ] || PRIVATE=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          python3 bin/plan.py --suite "$SUITE" \
+            --runners "$RUNNERS" --arch "$ARCH" --iterations "$ITERATIONS" \
+            --trigger "triggers/$SUITE.json" --event "$EVENT" \
+            --private "$PRIVATE" --out plan.json
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plan
+          path: plan.json
+
+  bench:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps:
+      - id: harness
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          path: .harness
+          persist-credentials: false
+      - name: Host info
+        uses: ./.harness/.github/actions/bench-start
+      - name: Magic Cache
+        # On RunsOn (extras=s3-cache), actions/cache goes to the S3 bucket in
+        # the customer's account.
+        if: matrix.provider == 'RunsOn'
+        uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d # v2.4.0
+      - name: Generate 4 GiB file
+        run: head -c 4G /dev/urandom > cache-file
+      - name: "phase: cache save"
+        if: matrix.cacheAction == 'actions/cache'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: cache-file
+          key: bench-${{ matrix.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: "phase: cache save"
+        if: matrix.cacheAction == 'WarpBuilds/cache'
+        uses: WarpBuilds/cache/save@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
+        with:
+          path: cache-file
+          key: bench-${{ matrix.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Remove file
+        # The restore follows immediately: a cache that isn't read-after-write
+        # consistent (e.g. "cache hit" then "blob does not exist") fails here,
+        # the way a quick follow-up job would.
+        run: rm cache-file
+      - name: "phase: cache restore"
+        if: matrix.cacheAction == 'actions/cache'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: cache-file
+          key: bench-${{ matrix.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          fail-on-cache-miss: true
+      - name: "phase: cache restore"
+        if: matrix.cacheAction == 'WarpBuilds/cache'
+        uses: WarpBuilds/cache/restore@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
+        with:
+          path: cache-file
+          key: bench-${{ matrix.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          fail-on-cache-miss: true
+      - name: "phase: verify"
+        # Some cache actions report a save that didn't complete, then "restore"
+        # nothing. Only a complete 4 GiB file counts as a restore.
+        run: test -f cache-file && test "$(stat -c %s cache-file)" -eq 4294967296
+      - name: Upload
+        if: always() && steps.harness.outcome == 'success'
+        uses: ./.harness/.github/actions/bench-finish
+        with:
+          key: ${{ matrix.key }}
+
+  publish:
+    needs: [plan, bench]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      # Annotations (check runs) carry the job's error message.
+      checks: read
+      # GitHub OIDC token for the read-only RunsOn cost role (publish action).
+      id-token: write
+    concurrency:
+      group: publish-results-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      # Keeps its credentials: the publish step pushes results.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: ./.github/actions/publish
+        with:
+          dispatch-token: ${{ secrets.SITE_DISPATCH_TOKEN }}
+          cost-reader-role: ${{ vars.AWS_COST_READER_ROLE_ARN }}
+          runs-on-log-group: ${{ vars.RUNS_ON_LOG_GROUP }}
+          aws-region: ${{ vars.AWS_REGION }}

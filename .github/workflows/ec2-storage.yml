@@ -1,0 +1,41 @@
+name: EC2 storage options
+
+on:
+  # Monthly, at 10:00 UTC: an hour no weekly suite uses (they run 03:00-05:00
+  # Monday and Tuesday, 15:00 Wednesday), so the 1st landing on one of those
+  # days never shares a provider's concurrency with them. Schedules only fire
+  # on the default branch.
+  schedule:
+    - cron: "0 10 1 * *"
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "default (the suite's runners; also when empty), all, or comma-separated runner ids. Trigger files are read on push only"
+        required: false
+        default: ""
+      iterations:
+        description: "Runs per runner, at most 5 (empty: 1)"
+        required: false
+        default: ""
+  push:
+    branches: [main, harness]
+    paths:
+      - triggers/ec2-storage.json
+
+permissions: {}
+
+jobs:
+  hardware:
+    # The called workflow's jobs get at most these; its publish job needs them.
+    permissions:
+      contents: write
+      actions: read
+      checks: read
+      id-token: write
+    uses: ./.github/workflows/hardware.yml
+    with:
+      suite: ec2-storage
+      runners: ${{ inputs.runners || '' }}
+      iterations: ${{ inputs.iterations || '' }}
+    secrets:
+      SITE_DISPATCH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}

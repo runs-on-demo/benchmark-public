@@ -1,0 +1,3026 @@
+{
+  "$comment": "Every runner the suites can target. `label` is the runs-on value; {run_id} and {run_attempt} are substituted at plan time. `suites` lists the suites a runner joins by default. Shapes are what the label advertises; the host-info step records what the job actually got. `suiteLabel` appends suite-specific settings (e.g. a bigger root volume for the docker suite) to the label. `cacheActions` lists the cache actions the cache suite measures on that runner: actions/cache, plus the provider's own action where it has one. `suiteNotes` explains a known per-suite outcome (e.g. why a machine fails a suite), shown next to the result. A `label` may be a list when a runner needs several labels. Runners from 2 to 12 vCPU join every race suite (rust, node, docker, hardware, cache, burst); the 16 vCPU EC2 types join only ec2-storage. The ec2-<instance type> runners (one per EC2 type of the CPU sweep, at the size it has always been measured at) join only ec2-cpu, never a race suite. The burst runs in shards of one runner per provider (a provider's x64 and arm64 runners never share a shard: some providers cap concurrency per account), one shard after another. RunsOn labels run on spot, RunsOn's default capacity, with retry=false: a spot interruption is not retried, so it shows as a failure (reason \"spot interruption\" when RunsOn's job summary says the instance was interrupted). suiteSkips.<suite>: why a runner is deliberately not in a suite (e.g. Docker at 8 GB or less), shown by the site instead of a failure.",
+  "runners": [
+    {
+      "id": "github-x64",
+      "provider": "GitHub",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubuntu-24.04",
+      "tier": "standard",
+      "storage": "network",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Standard 4 vCPU runner GitHub gives public repositories.",
+      "labelPrivate": "github24-4cpu-x64",
+      "private": {
+        "tier": "larger",
+        "note": "4 vCPU larger runner (private repositories)."
+      },
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "github-x64-8x32",
+      "provider": "GitHub",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "ubuntu-24.04-8core",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "labelPrivate": "github24-8cpu-x64",
+      "variant": "8-core larger runner",
+      "tier": "larger",
+      "private": {
+        "tier": "larger",
+        "note": "8-core larger runner (private repositories)."
+      },
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "github-x64-2x8",
+      "provider": "GitHub",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "github24-2cpu-x64",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "2-core",
+      "note": "GitHub 2-core larger runner (the size private repositories get as standard).",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "github-arm64",
+      "provider": "GitHub",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubuntu-24.04-arm",
+      "tier": "standard",
+      "storage": "network",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Standard 4 vCPU arm64 runner GitHub gives public repositories.",
+      "labelPrivate": null,
+      "private": {
+        "note": "No 4 vCPU arm64 larger runner in the org yet; skipped in private repositories."
+      },
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "github-arm64-8x32",
+      "provider": "GitHub",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "ubuntu-24.04-arm-8core",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "labelPrivate": null,
+      "variant": "8-core larger runner",
+      "tier": "larger",
+      "private": {
+        "note": "No 8-core larger runner configured in the org yet; skipped in private repositories."
+      },
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "github-arm64-2x8",
+      "provider": "GitHub",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "github24-2cpu-arm64",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "2-core",
+      "note": "GitHub 2-core arm64 larger runner.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8azn-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m8azn.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8azn.xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Highest single-thread CPU on EC2, root on EBS gp3.",
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "runson-m8a-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m8a.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8a.xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "AMD EPYC Turin general purpose, root on EBS gp3.",
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "runson-m8id-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m8id.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8id.xlarge",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Intel Granite Rapids with local NVMe instance storage.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-r8a-tmpfs-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=r8a.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "r8a.xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Same AMD Turin CPU as runson-m8a-x64 with twice the RAM; /tmp, /home/runner and /var/lib/docker live in memory (extras=tmpfs).",
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner runs out of memory. r8a.2xlarge (64 GB) has the room."
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-r8a-2xlarge-tmpfs-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 64,
+      "label": "runs-on={run_id},family=r8a.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "r8a.2xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "8 vCPU / 64 GB with tmpfs (YOLO mode): the smallest r8a with room for a PostHog build with Docker's data in RAM. Runs every suite so its row is complete; not the 4 vCPU shape the other runners use, so it is shown but not ranked.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-m9g-arm64",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m9g.xlarge,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m9g.xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Graviton5, root on EBS gp3.",
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "runson-m9gd-arm64",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m9gd.xlarge,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m9gd.xlarge",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Graviton5 with local NVMe instance storage.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-c8g-arm64-4x8",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=c8g.xlarge,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "c8g.xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "note": "Graviton4, 2 GB per vCPU.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-c8g-arm64-8x16",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=c8g.2xlarge,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "c8g.2xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "note": "Graviton4, 2 GB per vCPU.",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "runson-m9g-arm64-8x32",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m9g.2xlarge,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m9g.2xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "note": "Graviton5, 4 GB per vCPU.",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "blacksmith-x64",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "blacksmith-x64-8x32",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "blacksmith-8vcpu-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8 vCPU",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "blacksmith-x64-2x8",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "blacksmith-2vcpu-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "2 vCPU",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "blacksmith-arm64",
+      "provider": "Blacksmith",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "blacksmith-4vcpu-ubuntu-2404-arm",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "blacksmith-arm64-8x32",
+      "provider": "Blacksmith",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "blacksmith-8vcpu-ubuntu-2404-arm",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8 vCPU",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "blacksmith-arm64-2x6",
+      "provider": "Blacksmith",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 6,
+      "label": "blacksmith-2vcpu-ubuntu-2404-arm",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "2 vCPU",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "namespace-x64",
+      "provider": "Namespace",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "nscloud-ubuntu-24.04-amd64-4x16",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "4x16",
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-x64-4x8",
+      "provider": "Namespace",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "nscloud-ubuntu-24.04-amd64-4x8",
+      "variant": "4 vCPU / 8 GB",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "note": "Namespace bills 1 vCPU + 2 GB units, so 4x8 costs half of 4x16.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes.",
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "namespace-x64-8x16",
+      "provider": "Namespace",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 16,
+      "label": "nscloud-ubuntu-24.04-amd64-8x16",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8x16",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-x64-8x32",
+      "provider": "Namespace",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "nscloud-ubuntu-24.04-amd64-8x32",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8x32",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-x64-2x8",
+      "provider": "Namespace",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "nscloud-ubuntu-24.04-amd64-2x8",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "2x8",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "namespace-arm64",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "nscloud-ubuntu-24.04-arm64-4x16",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "4x16",
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-arm64-4x8",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "nscloud-ubuntu-24.04-arm64-4x8",
+      "variant": "4 vCPU / 8 GB",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "note": "Namespace bills 1 vCPU + 2 GB units, so 4x8 costs half of 4x16.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes.",
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "namespace-arm64-apple",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": [
+        "nscloud-ubuntu-24.04-arm64-4x16-with-features",
+        "namespace-features:linux-on-apple-silicon=true"
+      ],
+      "tier": "apple-silicon",
+      "variant": "Apple silicon",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Linux on Apple Silicon (early access; Apple M4 Pro or M5 Max hosts), billed at 7x the Linux rate: $0.084/min at 4x16 (overage rate). The -with-features suffix keeps plain nscloud-ubuntu-24.04-arm64-4x16 jobs off these runners.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-arm64-8x16",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 16,
+      "label": "nscloud-ubuntu-24.04-arm64-8x16",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8x16",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-arm64-8x32",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "nscloud-ubuntu-24.04-arm64-8x32",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8x32",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-arm64-2x8",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "nscloud-ubuntu-24.04-arm64-2x8",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "2x8",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "warpbuild-x64",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "warp-ubuntu-2404-x64-4x",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache",
+        "WarpBuilds/cache"
+      ],
+      "variant": "4x"
+    },
+    {
+      "id": "warpbuild-x64-8x32",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "warp-ubuntu-2404-x64-8x",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8x",
+      "cacheActions": [
+        "actions/cache",
+        "WarpBuilds/cache"
+      ]
+    },
+    {
+      "id": "warpbuild-x64-2x",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "warp-ubuntu-2404-x64-2x",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache",
+        "WarpBuilds/cache"
+      ],
+      "variant": "2x",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "warpbuild-arm64",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "warp-ubuntu-2404-arm64-4x",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache",
+        "WarpBuilds/cache"
+      ],
+      "variant": "4x"
+    },
+    {
+      "id": "warpbuild-arm64-xfast",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "vcpu": 6,
+      "ramGiB": 14,
+      "label": "warp-ubuntu-2604-arm64-6x-xfast",
+      "tier": "xfast",
+      "variant": "Apple M4 Pro (xfast)",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Warpbuild's xfast arm64 runner: Ubuntu 26.04 in a VM on Apple M4 Pro, 6 vCPU / 14 GB, $0.08/min.",
+      "cacheActions": [
+        "actions/cache",
+        "WarpBuilds/cache"
+      ]
+    },
+    {
+      "id": "warpbuild-arm64-xfast-12x",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "vcpu": 12,
+      "ramGiB": 28,
+      "label": "warp-ubuntu-2604-arm64-12x-xfast",
+      "tier": "xfast",
+      "variant": "Apple M4 Pro (xfast)",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Warpbuild's larger xfast arm64 runner: Ubuntu 26.04 in a VM on Apple M4 Pro, 12 vCPU / 28 GB, $0.16/min.",
+      "cacheActions": [
+        "actions/cache",
+        "WarpBuilds/cache"
+      ]
+    },
+    {
+      "id": "warpbuild-arm64-8x32",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "warp-ubuntu-2404-arm64-8x",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8x",
+      "cacheActions": [
+        "actions/cache",
+        "WarpBuilds/cache"
+      ]
+    },
+    {
+      "id": "warpbuild-arm64-2x",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "warp-ubuntu-2404-arm64-2x",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache",
+        "WarpBuilds/cache"
+      ],
+      "variant": "2x",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "ubicloud-x64",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubicloud-standard-4-ubuntu-2404",
+      "tier": "standard",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "standard 4"
+    },
+    {
+      "id": "ubicloud-premium-x64",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubicloud-premium-4-ubuntu-2404",
+      "tier": "premium",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "premium 4",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "ubicloud-x64-8x32",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "ubicloud-standard-8-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "tier": "standard",
+      "variant": "standard 8",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "ubicloud-premium-x64-8x32",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "ubicloud-premium-8-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "tier": "premium",
+      "variant": "premium 8",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "ubicloud-x64-2",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "ubicloud-standard-2-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "tier": "standard",
+      "variant": "standard 2",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "ubicloud-premium-x64-2",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "ubicloud-premium-2-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "tier": "premium",
+      "variant": "premium 2",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "ubicloud-arm64",
+      "provider": "Ubicloud",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubicloud-standard-4-arm-ubuntu-2404",
+      "tier": "standard",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "standard 4"
+    },
+    {
+      "id": "ubicloud-arm64-8x32",
+      "provider": "Ubicloud",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "ubicloud-standard-8-arm-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "tier": "standard",
+      "variant": "standard 8",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "ubicloud-arm64-2",
+      "provider": "Ubicloud",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "ubicloud-standard-2-arm-ubuntu-2404",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "tier": "standard",
+      "variant": "standard 2",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "avrea-x64",
+      "provider": "Avrea",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "avrea-ubuntu-24.04-4-vcpu",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "4 vCPU",
+      "suiteNotes": {
+        "node": "bun install fails on Avrea every time: bun's download of the drizzle-orm registry manifest arrives cut short (\"PackageFailedToParse\"), on three attempts from an empty cache, while curl on the same runner fetches it complete. The typecheck never starts."
+      }
+    },
+    {
+      "id": "avrea-x64-8x32",
+      "provider": "Avrea",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "avrea-ubuntu-24.04-8-vcpu",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8 vCPU",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales.",
+        "node": "bun install fails on Avrea every time: bun's download of the drizzle-orm registry manifest arrives cut short (\"PackageFailedToParse\"), on three attempts from an empty cache, while curl on the same runner fetches it complete. The typecheck never starts."
+      }
+    },
+    {
+      "id": "avrea-x64-2",
+      "provider": "Avrea",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "avrea-ubuntu-24.04-2-vcpu",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "2 vCPU",
+      "suiteNotes": {
+        "node": "bun install fails on Avrea every time: bun's download of the drizzle-orm registry manifest arrives cut short (\"PackageFailedToParse\"), on three attempts from an empty cache, while curl on the same runner fetches it complete. The typecheck never starts."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "avrea-arm64",
+      "provider": "Avrea",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "avrea-ubuntu-24.04-arm-4-vcpu",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "4 vCPU",
+      "suiteNotes": {
+        "node": "bun install fails on Avrea every time: bun's download of the drizzle-orm registry manifest arrives cut short (\"PackageFailedToParse\"), on three attempts from an empty cache, while curl on the same runner fetches it complete. The typecheck never starts."
+      }
+    },
+    {
+      "id": "avrea-arm64-8x32",
+      "provider": "Avrea",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "avrea-ubuntu-24.04-arm-8-vcpu",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8 vCPU",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales.",
+        "node": "bun install fails on Avrea every time: bun's download of the drizzle-orm registry manifest arrives cut short (\"PackageFailedToParse\"), on three attempts from an empty cache, while curl on the same runner fetches it complete. The typecheck never starts."
+      }
+    },
+    {
+      "id": "avrea-arm64-2",
+      "provider": "Avrea",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "avrea-ubuntu-24.04-arm-2-vcpu",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "2 vCPU",
+      "suiteNotes": {
+        "node": "bun install fails on Avrea every time: bun's download of the drizzle-orm registry manifest arrives cut short (\"PackageFailedToParse\"), on three attempts from an empty cache, while curl on the same runner fetches it complete. The typecheck never starts."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "starsling-x64",
+      "provider": "StarSling",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "starsling-ubuntu-24.04",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "The default StarSling label is a 4 vCPU runner.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "starsling-x64-8x32",
+      "provider": "StarSling",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "starsling-ubuntu-24.04-8",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "8 vCPU",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "codebuild-x64",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "codebuild-codebuild-benchmarks-{run_id}-{run_attempt}-ubuntu-8.0-medium",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "note": "BUILD_GENERAL1_MEDIUM: 4 vCPU / 8 GB.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "medium",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "codebuild-x64-8x16",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 16,
+      "label": "codebuild-codebuild-benchmarks-{run_id}-{run_attempt}-ubuntu-8.0-large",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "variant": "large",
+      "note": "BUILD_GENERAL1_LARGE: 8 vCPU / 15 GB.",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "codebuild-x64-2x3",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 3,
+      "label": "codebuild-codebuild-benchmarks-{run_id}-{run_attempt}-ubuntu-8.0-small",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "variant": "small",
+      "note": "BUILD_GENERAL1_SMALL: 2 vCPU / 3 GB.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8azn-gp3tuned-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m8azn.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo,volume=80gb:gp3:1000mbs:16000iops",
+      "instanceType": "m8azn.xlarge",
+      "storage": "ebs",
+      "variant": "gp3 1000 MiB/s, 16k IOPS",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Same instance as runson-m8azn-x64 with a provisioned gp3 root volume.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-c8a-x64-4x8",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=c8a.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c8a.xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "note": "AMD EPYC Turin, 2 GB per vCPU.",
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-c8a-x64-8x16",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=c8a.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c8a.2xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "note": "AMD EPYC Turin, 2 GB per vCPU.",
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "runson-i7i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=i7i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "i7i.large",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-i7i-xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=i7i.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "i7i.xlarge",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-i7i-2xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 64,
+      "label": "runs-on={run_id},family=i7i.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "i7i.2xlarge",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-i7i-4xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 16,
+      "ramGiB": 128,
+      "label": "runs-on={run_id},family=i7i.4xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "i7i.4xlarge",
+      "storage": "nvme",
+      "suites": [
+        "ec2-storage"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      },
+      "note": "16 vCPU: part of the EC2 storage ladder only (how local NVMe scales with instance size); not raced against 2-12 vCPU runners."
+    },
+    {
+      "id": "runson-m8id-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8id.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8id.large",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      },
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8id-2xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m8id.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8id.2xlarge",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-m8id-4xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 16,
+      "ramGiB": 64,
+      "label": "runs-on={run_id},family=m8id.4xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8id.4xlarge",
+      "storage": "nvme",
+      "suites": [
+        "ec2-storage"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      },
+      "note": "16 vCPU: part of the EC2 storage ladder only (how local NVMe scales with instance size); not raced against 2-12 vCPU runners."
+    },
+    {
+      "id": "runson-m9gd-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m9gd.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m9gd.large",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      },
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m9gd-2xlarge",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m9gd.2xlarge,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m9gd.2xlarge",
+      "storage": "nvme",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-m9g-xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m9g.xlarge,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "m9g.xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "note": "Graviton on m9g.xlarge with /tmp, /home/runner and /var/lib/docker in memory (extras=tmpfs): the arm64 counterpart of the x64 tmpfs runners.",
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 16 GB this machine shares between the tmpfs and the build itself, and the runner goes down mid-build."
+      }
+    },
+    {
+      "id": "runson-m9g-2xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m9g.2xlarge,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "m9g.2xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "note": "Graviton on m9g.2xlarge with /tmp, /home/runner and /var/lib/docker in memory (extras=tmpfs): the arm64 counterpart of the x64 tmpfs runners.",
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner loses contact mid-build (out of memory)."
+      }
+    },
+    {
+      "id": "runson-c8g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c8g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "c8g.large",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Graviton4, 2 GB per vCPU.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m9g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m9g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m9g.large",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Graviton, 4 GB per vCPU.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8azn-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8azn.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8azn.large",
+      "storage": "ebs",
+      "variant": "gp3 default",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache",
+        "docker": "volume=80gb"
+      },
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8azn-3xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 12,
+      "ramGiB": 48,
+      "label": "runs-on={run_id},family=m8azn.3xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8azn.3xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "note": "Highest single-thread CPU on EC2 at 12 vCPU, root on EBS gp3: m8azn has no 8 vCPU size.",
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ]
+    },
+    {
+      "id": "runson-m8a-2xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m8a.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8a.2xlarge",
+      "storage": "ebs",
+      "variant": "gp3 default",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache",
+        "docker": "volume=80gb"
+      }
+    },
+    {
+      "id": "runson-m8a-2xlarge-gp3tuned",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m8a.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo,volume=80gb:gp3:1000mbs:16000iops",
+      "instanceType": "m8a.2xlarge",
+      "storage": "ebs",
+      "variant": "gp3 1000 MiB/s, 16k IOPS",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-m8a-2xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m8a.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "m8a.2xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "ec2-storage",
+        "burst"
+      ],
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
+      },
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner runs out of memory. r8a.2xlarge (64 GB) has the room."
+      }
+    },
+    {
+      "id": "runson-c8a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c8a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c8a.large",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "AMD EPYC Turin, 2 GB per vCPU.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8a.large",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "AMD EPYC Turin, 4 GB per vCPU.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-r8a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r8a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r8a.large",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "AMD EPYC Turin, 8 GB per vCPU."
+    },
+    {
+      "id": "runson-t8i-medium",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=t8i.medium,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "t8i.medium",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Burstable Intel Xeon 6 (T8i, launched Sep 2026): the smallest size with 2 vCPU; runs on CPU credits.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8i.large",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Intel Xeon 6 (Granite Rapids), 4 GB per vCPU.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8i-flex-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8i-flex.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8i-flex.large",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Intel Xeon 6 Flex: m8i at a lower price, full CPU most of the time.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8i-xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m8i.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8i.xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Intel Xeon 6 (Granite Rapids), 4 GB per vCPU."
+    },
+    {
+      "id": "runson-m8i-flex-xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m8i-flex.xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8i-flex.xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Intel Xeon 6 Flex: m8i at a lower price, full CPU most of the time."
+    },
+    {
+      "id": "runson-m8i-2xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m8i.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8i.2xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Intel Xeon 6 (Granite Rapids), 4 GB per vCPU."
+    },
+    {
+      "id": "runson-m8i-flex-2xlarge",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m8i-flex.2xlarge,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8i-flex.2xlarge",
+      "storage": "ebs",
+      "suites": [
+        "hardware",
+        "rust",
+        "node",
+        "docker",
+        "cache",
+        "burst"
+      ],
+      "suiteLabel": {
+        "docker": "volume=80gb",
+        "cache": "extras=s3-cache"
+      },
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "note": "Intel Xeon 6 Flex: m8i at a lower price, full CPU most of the time."
+    },
+    {
+      "id": "ec2-c6a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c6a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c6a.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 3rd gen (Milan), 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c6i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c6i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c6i.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 3rd gen (Ice Lake), 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c6id-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c6id.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c6id.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 3rd gen (Ice Lake), local NVMe, 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c7a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c7a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c7a.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 4th gen (Genoa), 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c7i-flex-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c7i-flex.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c7i-flex.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 4th gen (Sapphire Rapids) Flex: full CPU most of the time, 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c7i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c7i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "c7i.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 4th gen (Sapphire Rapids), 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-i7i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=i7i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "i7i.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 5th gen (Emerald Rapids), local NVMe, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-i7ie-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=i7ie.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "i7ie.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 5th gen (Emerald Rapids), local NVMe, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m4-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m4.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m4.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon E5 v4/v3 (Broadwell/Haswell), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m5a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m5a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m5a.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 1st gen (Naples), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m5zn-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m5zn.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m5zn.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 2nd gen (Cascade Lake), high frequency (up to 4.5 GHz), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m6a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m6a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m6a.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 3rd gen (Milan), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m6i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m6i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m6i.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 3rd gen (Ice Lake), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m6id-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m6id.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m6id.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 3rd gen (Ice Lake), local NVMe, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m6idn-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m6idn.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m6idn.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 3rd gen (Ice Lake), local NVMe, network optimized, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m7a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m7a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m7a.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 4th gen (Genoa), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m7i-flex-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m7i-flex.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m7i-flex.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 4th gen (Sapphire Rapids) Flex: full CPU most of the time, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m7i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m7i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m7i.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 4th gen (Sapphire Rapids), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m8a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8a.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 5th gen (Turin), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m8azn-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8azn.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8azn.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 5th gen (Turin), high frequency (up to 5 GHz), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m8i-flex-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8i-flex.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8i-flex.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 6 (Granite Rapids) Flex: full CPU most of the time, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m8i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8i.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 6 (Granite Rapids), 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r6i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r6i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r6i.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 3rd gen (Ice Lake), 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r6id-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r6id.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r6id.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 3rd gen (Ice Lake), local NVMe, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r6idn-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r6idn.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r6idn.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 3rd gen (Ice Lake), local NVMe, network optimized, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r7a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r7a.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r7a.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 4th gen (Genoa), 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r7i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r7i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r7i.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 4th gen (Sapphire Rapids), 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r7iz-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r7iz.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r7iz.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 4th gen (Sapphire Rapids), high frequency (up to 3.9 GHz), 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r8i-flex-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r8i-flex.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r8i-flex.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 6 (Granite Rapids) Flex: full CPU most of the time, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r8i-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r8i.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "r8i.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 6 (Granite Rapids), 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-t3-medium",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=t3.medium,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "t3.medium",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon Platinum (Skylake/Cascade Lake), burstable (CPU credits), 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-t3a-medium",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=t3a.medium,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "t3a.medium",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "AMD EPYC 1st gen (Naples), burstable (CPU credits), 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-t8i-medium",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=t8i.medium,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "t8i.medium",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon 6 (Granite Rapids), burstable (CPU credits), 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-z1d-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=z1d.large,image=ubuntu24-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "z1d.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Intel Xeon Platinum 8151 (Skylake), high frequency (up to 4 GHz), local NVMe, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c6g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c6g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "c6g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton2, 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c6gd-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c6gd.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "c6gd.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton2, local NVMe, 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c7g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c7g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "c7g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton3, 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c7gd-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c7gd.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "c7gd.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton3, local NVMe, 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-c8g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=c8g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "c8g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton4, 2 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-i8g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=i8g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "i8g.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton4, local NVMe, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m6g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m6g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m6g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton2, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m6gd-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m6gd.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m6gd.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton2, local NVMe, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m7g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m7g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m7g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton3, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m7gd-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m7gd.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m7gd.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton3, local NVMe, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m8g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton4, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-m9g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m9g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m9g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton5, 4 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r7g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r7g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "r7g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton3, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r7gd-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r7gd.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "r7gd.large",
+      "storage": "nvme",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton3, local NVMe, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-r8g-large",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=r8g.large,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "r8g.large",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton4, 8 GB per vCPU. EC2 CPU sweep only."
+    },
+    {
+      "id": "ec2-t4g-medium",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "runs-on={run_id},family=t4g.medium,image=ubuntu24-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "t4g.medium",
+      "storage": "ebs",
+      "suites": [
+        "ec2-cpu"
+      ],
+      "note": "Graviton2, burstable (CPU credits), 2 GB per vCPU. EC2 CPU sweep only."
+    }
+  ]
+}

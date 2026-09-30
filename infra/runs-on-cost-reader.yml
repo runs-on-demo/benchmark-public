@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Read-only access for the benchmark repository to RunsOn's own per-job cost
+  estimates. The RunsOn control plane logs a "job_summary" event for every
+  completed job (GitHub job id, instance type, lifecycle, interruption, and
+  estimated EC2 + EBS cost). The benchmark publish job assumes this role through
+  GitHub OIDC and reads those events for its own jobs with CloudWatch Logs
+  Insights. Nothing else: no write access, no other log groups.
+
+Parameters:
+  RunsOnStackName:
+    Type: String
+    Default: runs-on
+    Description: Name of the RunsOn stack whose jobs the benchmark runs on.
+  LogGroupName:
+    Type: String
+    Default: ""
+    Description: >-
+      Control-plane log group holding job_summary events. Leave empty for the
+      CloudFormation install's default, /aws/ecs/<RunsOnStackName>/runs-on-worker
+      (Terraform installs use /aws/ecs/<stack>/flexd: pass it here).
+  GitHubOrg:
+    Type: String
+    Default: runs-on-demo
+  GitHubRepo:
+    Type: String
+    Default: benchmark-public
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Only workflows running on this branch can assume the role.
+  ExistingOIDCProviderArn:
+    Type: String
+    Default: ""
+    Description: >-
+      ARN of an existing token.actions.githubusercontent.com OIDC provider in
+      this account. Leave empty to create one (an account can hold only one).
+
+Conditions:
+  CreateProvider: !Equals [!Ref ExistingOIDCProviderArn, ""]
+  DefaultLogGroup: !Equals [!Ref LogGroupName, ""]
+
+Resources:
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+
+  CostReaderRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${GitHubRepo}-runs-on-cost-reader"
+      Description: !Sub "Lets ${GitHubOrg}/${GitHubRepo} (${GitHubBranch}) read RunsOn job_summary events"
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateProvider
+                - !GetAtt GitHubOIDCProvider.Arn
+                - !Ref ExistingOIDCProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+      Policies:
+        - PolicyName: read-runs-on-job-summaries
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: QueryControlPlaneLogGroup
+                Effect: Allow
+                Action:
+                  - logs:StartQuery
+                Resource: !Sub
+                  - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Group}:*"
+                  - Group: !If
+                      - DefaultLogGroup
+                      - !Sub "/aws/ecs/${RunsOnStackName}/runs-on-worker"
+                      - !Ref LogGroupName
+              - Sid: ReadQueryResults
+                Effect: Allow
+                Action:
+                  - logs:GetQueryResults
+                  - logs:StopQuery
+                Resource: "*"
+
+Outputs:
+  RoleArn:
+    Description: Set this as the AWS_COST_READER_ROLE_ARN variable of the benchmark repository.
+    Value: !GetAtt CostReaderRole.Arn
+  LogGroup:
+    Description: Log group the role can query; set it as the RUNS_ON_LOG_GROUP variable.
+    Value: !If
+      - DefaultLogGroup
+      - !Sub "/aws/ecs/${RunsOnStackName}/runs-on-worker"
+      - !Ref LogGroupName

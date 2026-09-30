@@ -1,0 +1,103 @@
+name: Publish results
+description: Merge a finished run into results/ and push it to the current branch.
+inputs:
+  dispatch-token:
+    description: Token allowed to send repository_dispatch to the site repo; the site refreshes as soon as results land. Optional.
+    required: false
+    default: ""
+  dispatch-repo:
+    description: Repository that renders the results.
+    required: false
+    default: runs-on/runs-on.com
+  cost-reader-role:
+    description: >-
+      ARN of the read-only role for RunsOn's per-job cost estimates
+      (infra/runs-on-cost-reader.yml), assumed through GitHub OIDC; the caller
+      passes vars.AWS_COST_READER_ROLE_ARN and grants id-token: write. Empty:
+      no lookup, and the site keeps its own estimate.
+    required: false
+    default: ""
+  runs-on-log-group:
+    description: RunsOn control-plane log group holding job_summary events (vars.RUNS_ON_LOG_GROUP).
+    required: false
+    default: ""
+  aws-region:
+    description: Region of the RunsOn stack (vars.AWS_REGION).
+    required: false
+    default: us-east-1
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        path: ${{ runner.temp }}/artifacts
+    # RunsOn's own cost estimate per job. Never fails the publish: without it
+    # the RunsOn results just carry no `cost`.
+    - name: AWS credentials (RunsOn job costs)
+      id: aws
+      if: ${{ inputs.cost-reader-role != '' }}
+      continue-on-error: true
+      uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      with:
+        role-to-assume: ${{ inputs.cost-reader-role }}
+        aws-region: ${{ inputs.aws-region || 'us-east-1' }}
+        role-session-name: benchmark-publish
+    - name: RunsOn job costs
+      if: ${{ inputs.cost-reader-role != '' && steps.aws.outcome == 'success' }}
+      continue-on-error: true
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        RUNS_ON_LOG_GROUP: ${{ inputs.runs-on-log-group }}
+      run: |
+        python3 bin/runs-on-costs.py \
+          --plan "$RUNNER_TEMP/artifacts/plan/plan.json" \
+          --out "$RUNNER_TEMP/runs-on-costs.json"
+    - name: Collect
+      id: collect
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        python3 bin/collect.py \
+          --plan "$RUNNER_TEMP/artifacts/plan/plan.json" \
+          --artifacts "$RUNNER_TEMP/artifacts" \
+          --costs "$RUNNER_TEMP/runs-on-costs.json" \
+          --out "$RUNNER_TEMP/run.json"
+    - name: Commit
+      shell: bash
+      env:
+        RESULT_PATH: ${{ steps.collect.outputs.path }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        branch="${GITHUB_REF_NAME}"
+        # Several suites publish to the same branch; rebuild the index on top
+        # of whatever landed first instead of rebasing a conflicting index.
+        for attempt in 1 2 3 4 5 6; do
+          git fetch -q origin "$branch"
+          git reset -q --hard "origin/$branch"
+          mkdir -p "results/$(dirname "$RESULT_PATH")"
+          cp "$RUNNER_TEMP/run.json" "results/$RESULT_PATH"
+          python3 bin/collect.py --reindex
+          git add results
+          git commit -q -m "results: ${RESULT_PATH%.json}" || { echo "nothing to commit"; exit 0; }
+          if git push -q origin "HEAD:$branch"; then
+            echo "published results/$RESULT_PATH"
+            exit 0
+          fi
+          sleep $((attempt * 5))
+        done
+        echo "could not push results after 6 attempts" >&2
+        exit 1
+    - name: Notify the site
+      if: ${{ inputs.dispatch-token != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.dispatch-token }}
+        REPO: ${{ inputs.dispatch-repo }}
+        RESULT_PATH: ${{ steps.collect.outputs.path }}
+      run: |
+        gh api "repos/$REPO/dispatches" -f event_type=runner-benchmarks-published \
+          -f "client_payload[suite]=$(dirname "$RESULT_PATH")" \
+          -f "client_payload[run]=${GITHUB_RUN_ID}" || echo "::warning::could not notify $REPO"
