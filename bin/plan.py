@@ -48,19 +48,17 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # Providers whose runners send actions/cache to their own storage, with no
 # workflow change or with the label and step the catalog already gives
-# (RunsOn: extras=s3-cache and runs-on/action). A runner can say otherwise
-# with `githubCacheStorage` (Warpbuild's Apple Silicon runners store in
-# GitHub's).
-REROUTES_ACTIONS_CACHE = {"RunsOn", "Blacksmith", "Ubicloud", "Warpbuild"}
+# (RunsOn: extras=s3-cache and runs-on/action), per their docs and checked
+# against this repository's GitHub cache list during a cache run (2026-10-01:
+# no entry of theirs appeared; GitHub, Namespace, StarSling, CodeBuild and
+# every Warpbuild runner's did). Warpbuild's own action (WarpBuilds/cache)
+# stores in Warpbuild's storage, so only its actions/cache jobs share.
+REROUTES_ACTIONS_CACHE = {"RunsOn", "Blacksmith", "Ubicloud", "Avrea"}
 
 
 def github_cache_storage(runner) -> bool:
     """The job's cache entry lands in this repository's GitHub cache storage."""
-    if runner.get("cacheAction") != "actions/cache":
-        return False
-    if "githubCacheStorage" in runner:
-        return bool(runner["githubCacheStorage"])
-    return runner["provider"] not in REROUTES_ACTIONS_CACHE
+    return runner.get("cacheAction") == "actions/cache" and runner["provider"] not in REROUTES_ACTIONS_CACHE
 
 # Jobs per runner a suite runs when nothing asks otherwise. The burst queues 15
 # jobs per runner at once: that is the measurement, not a repeat count.

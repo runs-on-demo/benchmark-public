@@ -149,9 +149,12 @@ class Lanes(unittest.TestCase):
         self.assertIn("github-x64.actions-cache", shared)
         self.assertIn("namespace-x64.actions-cache", shared)
         self.assertIn("warpbuild-arm64-xfast.actions-cache", shared)
+        self.assertIn("warpbuild-x64.actions-cache", shared)
         self.assertNotIn("warpbuild-arm64-xfast.warpbuilds-cache", shared)
-        self.assertNotIn("warpbuild-x64.actions-cache", shared)
+        self.assertNotIn("warpbuild-x64.warpbuilds-cache", shared)
         self.assertNotIn("blacksmith-x64.actions-cache", shared)
+        self.assertNotIn("ubicloud-x64.actions-cache", shared)
+        self.assertNotIn("avrea-x64.actions-cache", shared)
         self.assertFalse(any(j["provider"] == "RunsOn" for j in plan["jobs"] if j.get("shared")))
 
     def test_every_plan_output_a_workflow_reads_is_declared(self):
