@@ -412,6 +412,28 @@ def summarize_job(planned, job, artifacts_dir, repo=None, fetch_logs=True):
     return entry
 
 
+# cache.yml's bench-shared runs its jobs this many at a time (max-parallel).
+SHARED_LANE_SLOTS = 2
+
+
+def not_reached(planned, results, slots=SHARED_LANE_SLOTS):
+    """The shared cache lane (plan jobs with `shared`) starts its jobs in
+    plan order as its slots free up. When the run ended with lane jobs that no
+    runner picked up, the first `slots` of them held the slots, waiting for
+    their runner: "unavailable", their provider's doing. The rest were never
+    offered to a runner: "cancelled", with the reason naming who held the lane."""
+    waiting = [
+        (p, e) for p, e in zip(planned, results)
+        if p.get("shared") and e.get("status") == "unavailable" and e.get("reason") == "no runner picked up the job"
+    ]
+    holders = waiting[:slots]
+    who = sorted({p["provider"] for p, _ in holders})
+    for _, e in waiting[slots:]:
+        e["status"] = "cancelled"
+        e["reason"] = f"not reached: the shared cache lane waited on {' and '.join(who)} jobs no runner picked up"
+    return results
+
+
 COST_SOURCE = "runs-on-control-plane"
 
 
@@ -525,6 +547,7 @@ def main():
         if job and job.get("id"):
             apply_cost(entry, costs.get(str(job["id"])))
         results.append(entry)
+    not_reached(plan["jobs"], results)
 
     started = parse_ts(run.get("run_started_at") or run.get("created_at"))
     date = started.date().isoformat()
