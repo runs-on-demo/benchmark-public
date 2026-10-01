@@ -147,6 +147,17 @@ One file per workflow run: `results/<suite>/<date>-<run id>-<attempt>.json`.
 should not count is never deleted: it is listed, with the reason, in
 [`results/exclusions.json`](results/exclusions.json) and left out of the index.
 
+Only runs on the default branch publish to `results/`. To try a variation (a
+different image, label or workload) without it reaching the published data,
+change it on a branch and dispatch the suite there, for example
+`gh workflow run burst.yml --ref exp/ubuntu26 -f runners=runson-m8a-x64`: the
+result is committed to that branch under `experiments/<branch>/`, never into
+`results/` or its index, so merging the branch can't publish it, and the site
+isn't notified. Schedules only fire on the default branch. A branch run
+shares the providers with the default branch's runs, so keep it clear of a
+burst. RunsOn's measured per-job cost isn't looked up there (the cost role
+trusts the default branch only).
+
 ```jsonc
 {
   "schemaVersion": 1,

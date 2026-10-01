@@ -1,5 +1,9 @@
 name: Publish results
-description: Merge a finished run into results/ and push it to the current branch.
+description: >-
+  Merge a finished run into results/ and push it to the current branch. A run
+  on any other branch than the default one is an experiment: its result goes to
+  experiments/<branch>/ instead, out of results/ and its index (merging the
+  branch never brings it into the published data), and the site isn't notified.
 inputs:
   dispatch-token:
     description: Token allowed to send repository_dispatch to the site repo; the site refreshes as soon as results land. Optional.
@@ -68,22 +72,27 @@ runs:
       shell: bash
       env:
         RESULT_PATH: ${{ steps.collect.outputs.path }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         branch="${GITHUB_REF_NAME}"
+        # Published results come from the default branch only; a run on any
+        # other branch is an experiment, kept apart from results/.
+        dir=results
+        [ "$branch" = "$DEFAULT_BRANCH" ] || dir="experiments/$branch"
         # Several suites publish to the same branch; rebuild the index on top
         # of whatever landed first instead of rebasing a conflicting index.
         for attempt in 1 2 3 4 5 6; do
           git fetch -q origin "$branch"
           git reset -q --hard "origin/$branch"
-          mkdir -p "results/$(dirname "$RESULT_PATH")"
-          cp "$RUNNER_TEMP/run.json" "results/$RESULT_PATH"
-          python3 bin/collect.py --reindex
-          git add results
-          git commit -q -m "results: ${RESULT_PATH%.json}" || { echo "nothing to commit"; exit 0; }
+          mkdir -p "$dir/$(dirname "$RESULT_PATH")"
+          cp "$RUNNER_TEMP/run.json" "$dir/$RESULT_PATH"
+          if [ "$dir" = results ]; then python3 bin/collect.py --reindex; fi
+          git add "$dir"
+          git commit -q -m "$dir: ${RESULT_PATH%.json}" || { echo "nothing to commit"; exit 0; }
           if git push -q origin "HEAD:$branch"; then
-            echo "published results/$RESULT_PATH"
+            echo "published $dir/$RESULT_PATH"
             exit 0
           fi
           sleep $((attempt * 5))
@@ -91,7 +100,8 @@ runs:
         echo "could not push results after 6 attempts" >&2
         exit 1
     - name: Notify the site
-      if: ${{ inputs.dispatch-token != '' }}
+      # Experiments (any other branch than the default one) aren't published.
+      if: ${{ inputs.dispatch-token != '' && github.ref_name == (github.event.repository.default_branch || 'main') }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.dispatch-token }}
