@@ -165,24 +165,6 @@ class Classify(unittest.TestCase):
             e = collect.summarize_job(PLANNED, None, pathlib.Path(tmp), repo="o/r")
         self.assertEqual((e["status"], e["reason"]), ("cancelled", collect.NEVER_CREATED))
 
-    def test_shared_lane_jobs_behind_a_stalled_provider_were_not_reached(self):
-        planned = [
-            {"key": "a--1", "provider": "A"},
-            {"key": "s1--1", "provider": "S", "shared": True},
-            {"key": "s2--1", "provider": "S", "shared": True},
-            {"key": "c1--1", "provider": "C", "shared": True},
-            {"key": "c2--1", "provider": "C", "shared": True},
-        ]
-        never = {"status": "unavailable", "reason": "no runner picked up the job"}
-        results = [{"status": "success"}] + [dict(never) for _ in range(4)]
-        collect.not_reached(planned, results)
-        self.assertEqual([r["status"] for r in results], ["success", "unavailable", "unavailable", "cancelled", "cancelled"])
-        self.assertIn("waited on S jobs", results[3]["reason"])
-
-    def test_cache_workflow_slots_match_the_collector(self):
-        text = (ROOT / ".github" / "workflows" / "cache.yml").read_text()
-        self.assertIn(f"max-parallel: {collect.SHARED_LANE_SLOTS}", text)
-
     def test_never_started_is_unavailable(self):
         e = summarize({"id": 1, "conclusion": "cancelled", "started_at": None, "steps": []})
         self.assertEqual(e["status"], "unavailable")

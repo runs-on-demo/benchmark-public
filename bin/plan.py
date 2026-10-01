@@ -24,19 +24,25 @@ Iterations are capped (MAX_ITERATIONS). Private repositories get `labelPrivate`
 where a runner defines one (GitHub's free `ubuntu-24.04` runner is 4 vCPU only
 for public repositories).
 
-Writes `run=true|false`, `matrix=<json>`, `shared=<json>`, `shards` and the
-resolved `runners`, `arch`, `iterations` to $GITHUB_OUTPUT (or the matrix to
-stdout) and the full
-plan to plan.json, which the publish job uses to report runners that never
-started. plan.json's `selection` records whether the run covered the suite's
-default runners (`subset: false`) or only some of them.
+Writes `run=true|false`, `matrix=<json>`, `wave1`..`wave<MAX_WAVES>`, `shards`
+and the resolved `runners`, `arch`, `iterations` to $GITHUB_OUTPUT (or the
+matrix to stdout) and the full plan to plan.json, which the publish job uses to
+report runners that never started. plan.json's `selection` records whether the
+run covered the suite's default runners (`subset: false`) or only some of them.
 
 Cache jobs that store in this repository's own GitHub cache storage
-(actions/cache on a provider that doesn't reroute it) go to `shared`, every
-other job to `matrix`; either is empty ("") when it has no job. That storage
-is capped per repository (10 GB by default) and GitHub evicts entries past the
-cap, even one another job is still restoring: cache.yml runs the shared jobs
-two at a time (4 GiB each), the others all at once.
+(actions/cache on a provider that doesn't reroute it) go to waves of
+WAVE_SIZE jobs (`wave1`, `wave2`, ...; plan.json marks them `shared` and their
+`wave`), every other job to `matrix`; an output is empty ("") when it has no
+job. That storage is capped per repository (10 GB by default) and GitHub
+evicts entries past the cap, even one another job is still restoring, so
+cache.yml runs one wave (8 GiB) at a time, each after the previous one ended,
+and the other jobs all at once. Waves, not a max-parallel matrix: GitHub
+announces every job of a matrix when the run starts, max-parallel or not, and
+providers that start a runner on that announcement (CodeBuild, StarSling,
+Namespace) lose it to their idle timeout before a held-back job gets its turn,
+then never start another. A job of a later wave is announced when its wave
+starts.
 """
 import argparse
 import json
@@ -54,6 +60,12 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # every Warpbuild runner's did). Warpbuild's own action (WarpBuilds/cache)
 # stores in Warpbuild's storage, so only its actions/cache jobs share.
 REROUTES_ACTIONS_CACHE = {"RunsOn", "Blacksmith", "Ubicloud", "Avrea"}
+
+
+# Shared cache jobs per wave (4 GiB each: 8 GiB in flight), and the waves
+# cache.yml defines (bench-w1 .. bench-w<MAX_WAVES>).
+WAVE_SIZE = 2
+MAX_WAVES = 20
 
 
 def github_cache_storage(runner) -> bool:
@@ -284,6 +296,16 @@ def main() -> int:
         print("no runners selected", file=sys.stderr)
         return 1
 
+    # Shared cache jobs, in waves (see the module docstring).
+    shared = [j for j in include if j.get("shared")]
+    waves = [shared[i:i + WAVE_SIZE] for i in range(0, len(shared), WAVE_SIZE)]
+    if len(waves) > MAX_WAVES:
+        print(f"{len(shared)} shared cache jobs need {len(waves)} waves; cache.yml defines {MAX_WAVES}", file=sys.stderr)
+        return 1
+    for k, wave in enumerate(waves, 1):
+        for j in wave:
+            j["wave"] = k
+
     if private:
         for runner in selected:
             if "labelPrivate" in runner:
@@ -306,7 +328,11 @@ def main() -> int:
 
     matrix = lane([j for j in include if not j.get("shared")])
     if os.environ.get("GITHUB_OUTPUT"):
-        write_output(run="true", matrix=matrix, shared=lane([j for j in include if j.get("shared")]))
+        write_output(
+            run="true",
+            matrix=matrix,
+            **{f"wave{k}": lane(waves[k - 1] if k <= len(waves) else []) for k in range(1, MAX_WAVES + 1)},
+        )
     else:
         print(matrix)
     subset = f", subset: {len(missing)} of {len(defaults)} default runners left out" if missing else ""

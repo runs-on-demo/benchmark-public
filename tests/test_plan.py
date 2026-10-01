@@ -3,6 +3,7 @@
 Run: python3 -m unittest discover -s tests
 """
 import collections
+import importlib.util
 import json
 import os
 import pathlib
@@ -143,8 +144,16 @@ class Lanes(unittest.TestCase):
         # Their 4 GiB entries share the repository's cache storage cap: never all at once.
         rc, out, plan, _ = run_plan("cache")
         self.assertEqual(rc, 0)
-        lanes = {k: [j["key"] for j in json.loads(out[k])["include"]] if out.get(k) else [] for k in ("matrix", "shared")}
-        self.assertEqual(sorted(lanes["matrix"] + lanes["shared"]), sorted(j["key"] for j in plan["jobs"]))
+        keys = lambda k: [j["key"] for j in json.loads(out[k])["include"]] if out.get(k) else []
+        waves = [keys(f"wave{k}") for k in range(1, 21)]
+        self.assertEqual(sorted(keys("matrix") + sum(waves, [])), sorted(j["key"] for j in plan["jobs"]))
+        # Waves of at most two, filled in order, every shared job in exactly one.
+        sizes = [len(w) for w in waves]
+        self.assertTrue(all(n <= 2 for n in sizes))
+        self.assertEqual(sizes, sorted(sizes, key=lambda n: n == 0))
+        for k, w in enumerate(waves, 1):
+            for key in w:
+                self.assertEqual(next(j for j in plan["jobs"] if j["key"] == key)["wave"], k)
         shared = {j["id"] for j in plan["jobs"] if j.get("shared")}
         self.assertIn("github-x64.actions-cache", shared)
         self.assertIn("namespace-x64.actions-cache", shared)
@@ -163,17 +172,33 @@ class Lanes(unittest.TestCase):
         import re
         for wf in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
             text = wf.read_text()
-            read = set(re.findall(r"needs\.plan\.outputs\.([A-Za-z_-]+)", text))
+            read = set(re.findall(r"needs\.plan\.outputs\.([A-Za-z0-9_-]+)", text))
             block = re.search(r"\n  plan:\n(.*?)\n    steps:", text, re.S)
             if not read:
                 continue
-            declared = set(re.findall(r"\n      ([A-Za-z_-]+): \$\{\{ steps\.plan\.outputs\.", block.group(1))) if block else set()
+            declared = set(re.findall(r"\n      ([A-Za-z0-9_-]+): \$\{\{ steps\.plan\.outputs\.", block.group(1))) if block else set()
             self.assertEqual(read - declared, set(), wf.name)
 
-    def test_other_suites_have_no_shared_lane(self):
+    def test_other_suites_have_no_waves(self):
         rc, out, _, _ = run_plan("rust")
-        self.assertEqual((rc, out.get("shared")), (0, ""))
+        self.assertEqual(rc, 0)
+        self.assertEqual({out.get(f"wave{k}") for k in range(1, 21)}, {""})
         self.assertTrue(out.get("matrix"))
+
+    def test_cache_workflow_chains_one_job_per_wave(self):
+        # Each wave waits for the previous one, so GitHub announces its jobs
+        # (and providers start runners) only when it starts: never a
+        # max-parallel matrix, whose held-back jobs are announced at once.
+        spec = importlib.util.spec_from_file_location("plan", ROOT / "bin" / "plan.py")
+        plan = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(plan)
+        text = (ROOT / ".github" / "workflows" / "cache.yml").read_text()
+        self.assertNotIn("max-parallel", text)
+        for k in range(1, plan.MAX_WAVES + 1):
+            needs = "plan" if k == 1 else f"[plan, bench-w{k - 1}]"
+            self.assertIn(f"  bench-w{k}:\n    needs: {needs}\n", text)
+            self.assertIn(f"fromJSON(needs.plan.outputs.wave{k})", text)
+        self.assertNotIn(f"bench-w{plan.MAX_WAVES + 1}:", text)
 
 
 class HardwareGroups(unittest.TestCase):

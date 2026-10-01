@@ -38,7 +38,26 @@ jobs:
     outputs:
       run: ${{ steps.plan.outputs.run }}
       matrix: ${{ steps.plan.outputs.matrix }}
-      shared: ${{ steps.plan.outputs.shared }}
+      wave1: ${{ steps.plan.outputs.wave1 }}
+      wave2: ${{ steps.plan.outputs.wave2 }}
+      wave3: ${{ steps.plan.outputs.wave3 }}
+      wave4: ${{ steps.plan.outputs.wave4 }}
+      wave5: ${{ steps.plan.outputs.wave5 }}
+      wave6: ${{ steps.plan.outputs.wave6 }}
+      wave7: ${{ steps.plan.outputs.wave7 }}
+      wave8: ${{ steps.plan.outputs.wave8 }}
+      wave9: ${{ steps.plan.outputs.wave9 }}
+      wave10: ${{ steps.plan.outputs.wave10 }}
+      wave11: ${{ steps.plan.outputs.wave11 }}
+      wave12: ${{ steps.plan.outputs.wave12 }}
+      wave13: ${{ steps.plan.outputs.wave13 }}
+      wave14: ${{ steps.plan.outputs.wave14 }}
+      wave15: ${{ steps.plan.outputs.wave15 }}
+      wave16: ${{ steps.plan.outputs.wave16 }}
+      wave17: ${{ steps.plan.outputs.wave17 }}
+      wave18: ${{ steps.plan.outputs.wave18 }}
+      wave19: ${{ steps.plan.outputs.wave19 }}
+      wave20: ${{ steps.plan.outputs.wave20 }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -132,23 +151,234 @@ jobs:
           key: ${{ matrix.key }}
 
   # Jobs whose actions/cache stores in this repository's GitHub cache
-  # (bin/plan.py): two at a time, 8 GiB in flight under the repository's
+  # (bin/plan.py): in waves of two, 8 GiB in flight under the repository's
   # cache storage cap (10 GB by default), so GitHub never evicts an entry
-  # another job is still restoring. Same steps as bench.
-  bench-shared:
+  # another job is still restoring. Each wave starts when the previous one
+  # ended (whatever its outcome, unless the run was cancelled), so GitHub
+  # announces its jobs, and providers start their runners, only then. Same
+  # steps as bench. bin/plan.py MAX_WAVES matches the number of waves.
+  bench-w1:
     needs: plan
-    if: needs.plan.outputs.run == 'true' && needs.plan.outputs.shared != ''
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave1 != '' }}
     name: ${{ matrix.key }}
     strategy:
       fail-fast: false
-      max-parallel: 2
-      matrix: ${{ fromJSON(needs.plan.outputs.shared) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.wave1) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w2:
+    needs: [plan, bench-w1]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave2 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave2) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w3:
+    needs: [plan, bench-w2]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave3 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave3) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w4:
+    needs: [plan, bench-w3]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave4 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave4) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w5:
+    needs: [plan, bench-w4]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave5 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave5) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w6:
+    needs: [plan, bench-w5]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave6 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave6) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w7:
+    needs: [plan, bench-w6]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave7 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave7) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w8:
+    needs: [plan, bench-w7]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave8 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave8) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w9:
+    needs: [plan, bench-w8]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave9 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave9) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w10:
+    needs: [plan, bench-w9]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave10 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave10) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w11:
+    needs: [plan, bench-w10]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave11 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave11) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w12:
+    needs: [plan, bench-w11]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave12 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave12) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w13:
+    needs: [plan, bench-w12]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave13 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave13) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w14:
+    needs: [plan, bench-w13]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave14 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave14) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w15:
+    needs: [plan, bench-w14]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave15 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave15) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w16:
+    needs: [plan, bench-w15]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave16 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave16) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w17:
+    needs: [plan, bench-w16]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave17 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave17) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w18:
+    needs: [plan, bench-w17]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave18 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave18) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w19:
+    needs: [plan, bench-w18]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave19 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave19) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 40
+    steps: *bench-steps
+
+  bench-w20:
+    needs: [plan, bench-w19]
+    if: ${{ !cancelled() && needs.plan.outputs.run == 'true' && needs.plan.outputs.wave20 != '' }}
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.wave20) }}
     runs-on: ${{ matrix.label }}
     timeout-minutes: 40
     steps: *bench-steps
 
   publish:
-    needs: [plan, bench, bench-shared]
+    needs: [plan, bench, bench-w1, bench-w2, bench-w3, bench-w4, bench-w5, bench-w6, bench-w7, bench-w8, bench-w9, bench-w10, bench-w11, bench-w12, bench-w13, bench-w14, bench-w15, bench-w16, bench-w17, bench-w18, bench-w19, bench-w20]
     if: always() && needs.plan.result == 'success' && needs.plan.outputs.run == 'true'
     runs-on: ubuntu-latest
     permissions:
