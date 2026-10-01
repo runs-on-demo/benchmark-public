@@ -133,7 +133,7 @@ class Ec2Cpu(unittest.TestCase):
             self.assertEqual(r["id"], "ec2-" + r["instanceType"].replace(".", "-"))
             self.assertEqual(r["provider"], "RunsOn")
             self.assertIn(f"family={r['instanceType']},", r["label"])
-            self.assertIn(f"image=ubuntu24-full-{r['arch']},", r["label"])
+            self.assertIn(f"image=ubuntu26-full-{r['arch']},", r["label"])
         for r in RUNNERS:
             if r["id"].startswith("ec2-"):
                 self.assertFalse(set(r.get("suites", [])) & set(RACE_SUITES), r["id"])
