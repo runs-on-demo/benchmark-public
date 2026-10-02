@@ -1,0 +1,49 @@
+name: CPU daily
+
+# PassMark single-thread every day on each provider's 2 vCPU runners, plus the
+# few runners at other sizes whose label continues a line of runs-on.com's CPU
+# history (config/runners.json, "cpu-daily" in suites). The hardware suite's
+# passmark group only; the hardware suite itself still runs every group every
+# third day. runs-on.com draws one line per runner label over time from these
+# runs and the hardware suite's.
+
+on:
+  # Daily at 08:00 UTC: an hour no other suite uses (rust and hardware 02:00,
+  # node and cache 04:00, docker 06:00, ec2-cpu and ec2-storage 10:00 once a
+  # month, burst 15:00), so it never shares a provider's concurrency with
+  # them. Schedules only fire on the default branch.
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "default (the suite's runners; also when empty), all, or comma-separated runner ids. Trigger files are read on push only"
+        required: false
+        default: ""
+      iterations:
+        description: "Runs per runner, at most 5 (empty: 1)"
+        required: false
+        default: ""
+  push:
+    branches: [main, harness]
+    paths:
+      - triggers/cpu-daily.json
+
+permissions: {}
+
+jobs:
+  hardware:
+    # The called workflow's jobs get at most these; its publish job needs them.
+    permissions:
+      contents: write
+      actions: read
+      checks: read
+      id-token: write
+    uses: ./.github/workflows/hardware.yml
+    with:
+      suite: cpu-daily
+      groups: passmark
+      runners: ${{ inputs.runners || '' }}
+      iterations: ${{ inputs.iterations || '' }}
+    secrets:
+      SITE_DISPATCH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}

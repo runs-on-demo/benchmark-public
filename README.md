@@ -18,6 +18,7 @@ produced, or fork the repository and run it on their own account.
 | `hardware` | sysbench, 7-Zip and PassMark CPU; memory bandwidth; fio in the job workspace; downloads; `docker pull`; pgbench | [hardware.yml](.github/workflows/hardware.yml) |
 | `ec2-storage` | The hardware suite on EC2 types that differ by storage: EBS gp3 (default and provisioned), local NVMe at several sizes, tmpfs | [ec2-storage.yml](.github/workflows/ec2-storage.yml) |
 | `ec2-cpu` | The hardware suite's CPU groups only (sysbench, 7-Zip, PassMark) on one instance per EC2 type, at its smallest 2 vCPU size (`.large`, `.medium` for burstable `t` types): 50 types, x64 and Graviton. See [EC2 CPU per instance type](#ec2-cpu-per-instance-type) | [ec2-cpu.yml](.github/workflows/ec2-cpu.yml) |
+| `cpu-daily` | The hardware suite's PassMark group only, every day, on each provider's 2 vCPU runners (and a few runners whose label continues runs-on.com's CPU history): the single-thread score over time. See [CPU daily](#cpu-daily) | [cpu-daily.yml](.github/workflows/cpu-daily.yml) |
 | `cache` | A 4 GB file saved with a cache action, deleted, then restored immediately on the same runner (no pause, so a cache that isn't read-after-write consistent fails): `actions/cache` and the provider's own cache action where it offers one (WarpBuilds/cache). Jobs whose `actions/cache` stores in this repository's GitHub cache run in waves of two, each starting when the previous one ends, so the repository's cache storage cap (10 GB by default) never evicts an entry mid-restore; a restore that loses its entry that way anyway counts as measuring nothing, not as the runner's failure | [cache.yml](.github/workflows/cache.yml) |
 | `burst` | 15 identical jobs per runner queued at the same instant, each holding its runner for 60 s: how long jobs wait when a spike arrives (scaling speed plus the plan's concurrency limits). Runs in shards of one runner per provider, one shard after another; each shard starts the next once it has published. Some providers cap concurrency per account across both architectures, so a provider's x64 and arm64 runners never share a shard | [burst.yml](.github/workflows/burst.yml) |
 | `smoke` | Picks up a job and records the host, to check which labels this repository can reach (every runner in the catalog by default) | [smoke.yml](.github/workflows/smoke.yml) |
@@ -35,7 +36,8 @@ and `burst`. The 16 vCPU EC2 types (`m8id.4xlarge`, `i7i.4xlarge`) run only in
 `ec2-storage`, where they show how local NVMe scales; they don't race smaller
 runners. The `ec2-<instance type>` runners (`ec2-c6a-large`, `ec2-m9g-large`,
 …) run only in `ec2-cpu`: they measure an EC2 type, not a CI runner, and never
-appear in a race.
+appear in a race. Every 2 vCPU runner also joins `cpu-daily`, a PassMark run
+each day.
 
 Each job also records what it actually got: CPU model, memory, the filesystem
 and device behind the workspace and the Docker root, the EC2 instance type,
@@ -104,7 +106,8 @@ suites never share a provider's concurrency. While the first results build up,
 the suites run every three days: Rust, TypeScript and Docker on day one (02:00,
 04:00, 06:00 UTC), hardware and cache on day two (02:00, 04:00), the burst
 alone on day three at 15:00. EC2 storage runs on the 1st of each month and EC2
-CPU on the 10th, both at 10:00, an hour no other suite uses. Results also come from manual dispatches and trigger-file
+CPU on the 10th, both at 10:00, an hour no other suite uses. CPU daily runs every day
+at 08:00, also an hour of its own. Results also come from manual dispatches and trigger-file
 pushes; `selection.origin.event` says which.
 A scheduled run always uses the suite's default runners and ignores the
 trigger files.
@@ -139,6 +142,20 @@ network, Docker and PostgreSQL groups are not run (the reusable
 
 To add an instance type, add an `ec2-<type with dots as dashes>` runner to
 `config/runners.json` with `"suites": ["ec2-cpu"]`.
+
+## CPU daily
+
+`cpu-daily` runs PassMark PerformanceTest's CPU tests every day at 08:00 UTC,
+an hour no other suite uses, on each provider's 2 vCPU runners. The figure it
+is for is **CPU Single Threaded** (`metrics.cpu.passmarkSingle`): the same
+`bin/hw-bench.py passmark` group, with the same settings, as the hardware
+suite, so a runner's daily points and its hardware-suite points form one
+series. runs-on.com draws them as one line per runner label over time,
+continuing the daily single-thread samples it has kept since July 2026 under
+the same labels. A few runners at other sizes join it for that reason: AWS
+CodeBuild medium and large, GitHub's standard x64 runner, StarSling's default
+label and Namespace on Apple Silicon. To add a runner, add `"cpu-daily"` to its
+`suites` in `config/runners.json`.
 
 ## Results format
 

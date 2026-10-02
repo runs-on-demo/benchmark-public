@@ -139,6 +139,42 @@ class Ec2Cpu(unittest.TestCase):
                 self.assertFalse(set(r.get("suites", [])) & set(RACE_SUITES), r["id"])
 
 
+CPU_DAILY = [r for r in RUNNERS if "cpu-daily" in r.get("suites", [])]
+
+
+class CpuDaily(unittest.TestCase):
+    def test_every_2_vcpu_race_runner_joins_and_runs_once(self):
+        race_2vcpu = {r["id"] for r in RUNNERS if r.get("vcpu") == 2 and set(r.get("suites", [])) & set(RACE_SUITES) and not r.get("paused")}
+        self.assertTrue(race_2vcpu <= {r["id"] for r in CPU_DAILY})
+        rc, out, plan, err = run_plan("cpu-daily", None)
+        self.assertEqual((rc, out.get("run")), (0, "true"), err)
+        self.assertEqual(sorted(j["id"] for j in plan["jobs"]), sorted(r["id"] for r in CPU_DAILY))
+        self.assertTrue(all("{run_id}" not in j["label"] for j in plan["jobs"]))
+
+    def test_no_ec2_cpu_runner(self):
+        self.assertFalse([r["id"] for r in CPU_DAILY if r["id"].startswith("ec2-")])
+
+    def test_trigger_at_rest_runs_nothing(self):
+        trigger = json.loads((ROOT / "triggers" / "cpu-daily.json").read_text())
+        rc, out, plan, _ = run_plan("cpu-daily", trigger, event="push")
+        self.assertEqual((rc, out.get("run"), plan), (0, "false", None))
+
+    def test_runs_only_passmark_daily_at_its_own_hour(self):
+        text = (ROOT / ".github" / "workflows" / "cpu-daily.yml").read_text()
+        self.assertIn("suite: cpu-daily\n", text)
+        self.assertIn("groups: passmark\n", text)
+        self.assertIn('- cron: "0 8 * * *"', text)
+        workload = json.loads((ROOT / "config" / "workloads.json").read_text())["cpu-daily"]
+        self.assertEqual(workload["groups"], ["passmark"])
+        # No other suite's cron starts at 08:00.
+        for wf in (ROOT / ".github" / "workflows").glob("*.yml"):
+            if wf.name == "cpu-daily.yml":
+                continue
+            for line in wf.read_text().splitlines():
+                if "cron:" in line:
+                    self.assertNotEqual(line.split('"')[1].split()[1], "8", wf.name)
+
+
 class Lanes(unittest.TestCase):
     def test_github_cache_storage_jobs_go_to_the_shared_lane(self):
         # Their 4 GiB entries share the repository's cache storage cap: never all at once.
