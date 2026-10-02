@@ -433,6 +433,11 @@ def apply_cost(entry, summary):
         "interrupted": bool(summary.get("interrupted")),
         "source": COST_SOURCE,
     }
+    # The billed instance time and the rates, when the control plane logs them:
+    # the site re-prices the job at on-demand over exactly that time.
+    for k in ("billedSeconds", "ec2HourlyUsd", "ebsHourlyUsd"):
+        if summary.get(k) is not None:
+            entry["cost"][k] = summary[k]
     if entry["cost"]["interrupted"] and entry.get("status") == "failure":
         entry["reason"] = "spot interruption"
     return entry

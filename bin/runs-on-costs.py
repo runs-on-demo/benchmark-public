@@ -8,7 +8,11 @@ on-demand, the AZ's spot price over the job's window, EBS volumes, AWS's
 CloudWatch Logs Insights and writes
 
     { "<job id>": { "usd", "ec2Usd", "ebsUsd", "lifecycle", "interrupted",
-                    "instanceType", "durationSeconds" } }
+                    "instanceType", "durationSeconds", "billedSeconds",
+                    "ec2HourlyUsd", "ebsHourlyUsd" } }
+
+(the last three only when the control plane logs them: the billed instance
+time and the rates its estimate used)
 
 which bin/collect.py --costs merges into the results. Only jobs planned on a
 RunsOn runner that started are looked up. A summary lands shortly after its
@@ -46,6 +50,10 @@ FIELDS = (
     "interrupted",
     "instance_type",
     "job_duration_seconds",
+    # The instance time and rates the estimate used, when the control plane logs them.
+    "billed_seconds",
+    "ec2_hourly_usd",
+    "ebs_hourly_usd",
 )
 
 
@@ -112,6 +120,9 @@ def parse_results(response):
             "interrupted": _true(f.get("interrupted")),
             "instanceType": f.get("instance_type") or None,
             "durationSeconds": round(duration) if duration is not None else None,
+            "billedSeconds": _num(f.get("billed_seconds"), 1),
+            "ec2HourlyUsd": _num(f.get("ec2_hourly_usd"), 6),
+            "ebsHourlyUsd": _num(f.get("ebs_hourly_usd"), 6),
         }
     return out
 

@@ -169,6 +169,13 @@ class Merge(unittest.TestCase):
             e["reason"] = reason
         return e
 
+    def test_billed_time_and_rates_kept_when_logged(self):
+        summary = {"usd": 0.004, "ec2Usd": 0.0035, "ebsUsd": 0.0005, "lifecycle": "spot", "interrupted": False,
+                   "billedSeconds": 97.7, "ec2HourlyUsd": 0.129, "ebsHourlyUsd": 0.0184}
+        e = collect.apply_cost(self.entry(), summary)
+        self.assertEqual((e["cost"]["billedSeconds"], e["cost"]["ec2HourlyUsd"], e["cost"]["ebsHourlyUsd"]), (97.7, 0.129, 0.0184))
+        self.assertNotIn("billedSeconds", collect.apply_cost(self.entry(), {**summary, "billedSeconds": None})["cost"])
+
     def test_cost_merged_without_instance_details(self):
         summary = costs.parse_results(RESPONSE)["109805235446"]
         e = collect.apply_cost(self.entry(), summary)
