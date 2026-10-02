@@ -29,6 +29,18 @@ Parameters:
     Type: String
     Default: main
     Description: Only workflows running on this branch can assume the role.
+  GitHubOrgId:
+    Type: String
+    Default: "166723112"
+    Description: >-
+      Numeric id of GitHubOrg. Repositories using GitHub's immutable OIDC
+      subject (repo:<org>@<org id>/<repo>@<repo id>:...) send it in the token's
+      sub claim: gh api repos/<org>/<repo>/actions/oidc/customization/sub shows
+      the prefix. Both subject formats are accepted.
+  GitHubRepoId:
+    Type: String
+    Default: "1395247145"
+    Description: Numeric id of GitHubRepo (see GitHubOrgId).
   ExistingOIDCProviderArn:
     Type: String
     Default: ""
@@ -68,7 +80,9 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+                token.actions.githubusercontent.com:sub:
+                  - !Sub "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+                  - !Sub "repo:${GitHubOrg}@${GitHubOrgId}/${GitHubRepo}@${GitHubRepoId}:ref:refs/heads/${GitHubBranch}"
       Policies:
         - PolicyName: read-runs-on-job-summaries
           PolicyDocument:
