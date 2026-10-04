@@ -105,6 +105,46 @@ class Plan(unittest.TestCase):
             self.assertEqual(plan["selection"]["shards"], int(out["shards"]))
 
 
+class UniqueLabels(unittest.TestCase):
+    """Every RunsOn job of a run requests its own label (RunsOn's matrix-jobs
+    guideline), so GitHub can't hand one job's runner to a sibling."""
+
+    def test_burst_runs_on_jobs_each_request_their_own_label(self):
+        rc, out, plan, err = run_plan("burst", None, shard=1)
+        self.assertEqual(rc, 0, err)
+        runs_on = [j for j in plan["jobs"] if isinstance(j["label"], str) and j["label"].startswith("runs-on=")]
+        self.assertEqual(len(runs_on), 15)
+        self.assertEqual(len({j["label"] for j in runs_on}), 15)
+        for j in runs_on:
+            head, _, rest = j["label"].partition(",")
+            self.assertRegex(head, r"^runs-on=\d+-[a-z0-9-]+-\d+$")
+            catalog = next(r for r in RUNNERS if r["id"] == j["id"])["label"]
+            self.assertEqual(rest, catalog.partition(",")[2], "only the runs-on= value changes")
+
+    def test_every_suite_gives_each_runs_on_job_a_distinct_label(self):
+        for suite in ("rust", "node", "docker", "hardware", "cache", "burst", "ec2-storage", "ec2-cpu", "cpu-daily"):
+            rc, out, plan, err = run_plan(suite, None)
+            self.assertEqual(rc, 0, f"{suite}: {err}")
+            labels = [j["label"] for j in plan["jobs"] if isinstance(j["label"], str) and j["label"].startswith("runs-on=")]
+            self.assertEqual(len(labels), len(set(labels)), suite)
+
+    def test_other_providers_labels_are_untouched(self):
+        # Outside a workflow run, plan.py fills {run_id} with "0" and {run_attempt} with "1".
+        checked = 0
+        for shard in range(1, 4):
+            rc, out, plan, err = run_plan("burst", None, shard=shard)
+            self.assertEqual(rc, 0, err)
+            for j in plan["jobs"]:
+                catalog = next(r for r in RUNNERS if r["id"] == j["id"])["label"]
+                if isinstance(catalog, str) and catalog.startswith("runs-on="):
+                    continue
+                fill = lambda v: v.replace("{run_id}", "0").replace("{run_attempt}", "1")
+                expected = [fill(x) for x in catalog] if isinstance(catalog, list) else fill(catalog)
+                self.assertEqual(j["label"], expected, j["id"])
+                checked += 1
+        self.assertGreater(checked, 0)
+
+
 EC2_CPU = [r for r in RUNNERS if "ec2-cpu" in r.get("suites", [])]
 RACE_SUITES = ("rust", "node", "docker", "hardware", "cache", "burst")
 

@@ -45,6 +45,7 @@ then never start another. A job of a later wave is announced when its wave
 starts.
 """
 import argparse
+import re
 import json
 import os
 import pathlib
@@ -110,6 +111,24 @@ def write_output(**values):
         with open(output, "a") as fh:
             for k, v in values.items():
                 fh.write(f"{k}={v}\n")
+
+
+def unique_runs_on(label, job: str):
+    """Give a RunsOn label its own `runs-on=` value for one job:
+    `runs-on=<run id>,family=...` -> `runs-on=<run id>-<job>,family=...`.
+
+    RunsOn's guideline (runs-on.com docs, runners/labels "Matrix jobs"): every
+    job requests a uniquely assigned label. With one label shared by the 15
+    jobs of a burst, GitHub treats their runners as interchangeable: a runner
+    launched for one job picks up a sibling, and when one runner is missing
+    (a failed launch, a missed webhook) the job left over waits for RunsOn to
+    retry, minutes later. Other providers' labels, and label lists, are left
+    as they are."""
+    if not isinstance(label, str) or not label.startswith("runs-on="):
+        return label
+    head, sep, rest = label.partition(",")
+    token = re.sub(r"[^a-z0-9-]+", "-", job.lower()).strip("-")
+    return f"{head}-{token}{sep}{rest}"
 
 
 def merge_label(label: str, extra: str) -> str:
@@ -278,7 +297,7 @@ def main() -> int:
                     "id": runner["id"],
                     "provider": runner["provider"],
                     "arch": runner["arch"],
-                    "label": label,
+                    "label": unique_runs_on(label, f"{runner['id']}-{iteration}"),
                     "iteration": iteration,
                     "cacheAction": runner.get("cacheAction", ""),
                     **({"shared": True} if github_cache_storage(runner) else {}),
