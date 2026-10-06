@@ -115,8 +115,8 @@ A burst shard publishes, and starts the next one, only once all its jobs have
 finished, and a queued job that no runner picks up waits up to 24 hours. So a
 label no provider serves stalls the whole chain: dispatch `smoke` before a
 burst chain to confirm every label is served.
-When a run publishes, the harness notifies the site (`repository_dispatch`,
-if `SITE_DISPATCH_TOKEN` is set), which fetches the new JSON and redeploys.
+The site (runs-on/runs-on.com) checks for new results every six hours and
+opens a pull request with them; they go live once it is merged.
 
 ## EC2 CPU per instance type
 
@@ -169,10 +169,9 @@ different image, label or workload) without it reaching the published data,
 change it on a branch and dispatch the suite there, for example
 `gh workflow run burst.yml --ref exp/ubuntu26 -f runners=runson-m8a-x64`: the
 result is committed to that branch under `experiments/<branch>/`, never into
-`results/` or its index, so merging the branch can't publish it, and the site
-isn't notified. Schedules only fire on the default branch. A branch run
-shares the providers with the default branch's runs, so keep it clear of a
-burst. RunsOn's measured per-job cost isn't looked up there (the cost role
+`results/` or its index, so merging the branch can't publish it. Schedules
+only fire on the default branch. A branch run shares the providers with the
+default branch's runs, so keep it clear of a burst. RunsOn's measured per-job cost isn't looked up there (the cost role
 trusts the default branch only).
 
 ```jsonc

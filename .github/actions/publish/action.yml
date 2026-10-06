@@ -3,16 +3,8 @@ description: >-
   Merge a finished run into results/ and push it to the current branch. A run
   on any other branch than the default one is an experiment: its result goes to
   experiments/<branch>/ instead, out of results/ and its index (merging the
-  branch never brings it into the published data), and the site isn't notified.
+  branch never brings it into the published data).
 inputs:
-  dispatch-token:
-    description: Token allowed to send repository_dispatch to the site repo; the site refreshes as soon as results land. Optional.
-    required: false
-    default: ""
-  dispatch-repo:
-    description: Repository that renders the results.
-    required: false
-    default: runs-on/runs-on.com
   cost-reader-role:
     description: >-
       ARN of the read-only role for RunsOn's per-job cost estimates
@@ -99,15 +91,3 @@ runs:
         done
         echo "could not push results after 6 attempts" >&2
         exit 1
-    - name: Notify the site
-      # Experiments (any other branch than the default one) aren't published.
-      if: ${{ inputs.dispatch-token != '' && github.ref_name == (github.event.repository.default_branch || 'main') }}
-      shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.dispatch-token }}
-        REPO: ${{ inputs.dispatch-repo }}
-        RESULT_PATH: ${{ steps.collect.outputs.path }}
-      run: |
-        gh api "repos/$REPO/dispatches" -f event_type=runner-benchmarks-published \
-          -f "client_payload[suite]=$(dirname "$RESULT_PATH")" \
-          -f "client_payload[run]=${GITHUB_RUN_ID}" || echo "::warning::could not notify $REPO"
