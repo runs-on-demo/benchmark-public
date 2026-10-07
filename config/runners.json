@@ -250,11 +250,7 @@
       "storage": "tmpfs",
       "variant": "YOLO mode (tmpfs)",
       "suites": [
-        "hardware",
-        "rust",
-        "node",
-        "cache",
-        "burst"
+        "docker"
       ],
       "note": "Same AMD Turin CPU as runson-m8a-x64 with twice the RAM; /tmp, /home/runner and /var/lib/docker live in memory (extras=tmpfs).",
       "suiteNotes": {
@@ -265,9 +261,30 @@
       ],
       "suiteLabel": {
         "cache": "extras=s3-cache"
+      }
+    },
+    {
+      "id": "runson-r8a-tmpfs-zram-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=r8a.xlarge,image=ubuntu26-full-x64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "r8a.xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs) + zram",
+      "suites": [
+        "docker"
+      ],
+      "note": "Experiment: runson-r8a-tmpfs-x64 with zram swap sized to RAM, enabled by the workflow (the agent only enables it at 16 GiB or less).",
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner runs out of memory. r8a.2xlarge (64 GB) has the room."
       },
-      "suiteSkips": {
-        "docker": "Not run: needs more than 32 GB of RAM with tmpfs, where Docker's data root lives in RAM; PostHog's layers plus the build's own memory exceeded it and the runner was shut down mid-build. The 64 GB tmpfs runner builds it."
+      "cacheActions": [
+        "actions/cache"
+      ],
+      "suiteLabel": {
+        "cache": "extras=s3-cache"
       }
     },
     {

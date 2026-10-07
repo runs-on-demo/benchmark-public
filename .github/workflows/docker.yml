@@ -86,6 +86,32 @@ jobs:
           persist-credentials: false
       - name: Host info
         uses: ./.harness/.github/actions/bench-start
+      - name: "Experiment: zram"
+        if: contains(matrix.key, '-zram-')
+        run: |
+          # Same setup as the RunsOn agent on <=16 GiB runners: zram0 sized to
+          # RAM, default algorithm, priority 100, swappiness 100, page-cluster 0.
+          mem=$(awk '/MemTotal/ {print $2 * 1024}' /proc/meminfo)
+          sudo modprobe zram
+          echo "algorithm: $(cat /sys/block/zram0/comp_algorithm)"
+          echo "$mem" | sudo tee /sys/block/zram0/disksize >/dev/null
+          sudo mkswap /dev/zram0 >/dev/null && sudo swapon -p 100 /dev/zram0
+          sudo sysctl -q vm.swappiness=100 vm.page-cluster=0
+          # zram does not raise tmpfs's size cap (RAM): lift it so the cap is
+          # not what stops the build.
+          sudo mount -o remount,size=48G /var/lib/docker
+          df -h /var/lib/docker; swapon --show; free -g
+          # Sample memory every 10 s for the whole job.
+          cat > /tmp/sampler.sh <<'SH'
+          while sleep 10; do
+            read -r orig compr _ < /sys/block/zram0/mm_stat
+            used=$(free -m | awk '/Mem/ {print $3}')
+            swap=$(free -m | awk '/Swap/ {print $3}')
+            docker=$(df -BM --output=used /var/lib/docker | tail -1 | tr -d ' ')
+            echo "$(date +%T) used=${used}M swap=${swap}M zram=$((orig >> 20))M->$((compr >> 20))M docker=${docker}"
+          done
+          SH
+          nohup bash /tmp/sampler.sh > /tmp/mem-samples.log 2>&1 &
       - name: Make room
         run: |
           # The PostHog build needs ~40 GB. Runners with less free space at
@@ -125,6 +151,14 @@ jobs:
         if: always()
         continue-on-error: true
         run: df -h "$(docker info -f '{{.DockerRootDir}}')" || df -h
+      - name: "Experiment: memory report"
+        if: always() && contains(matrix.key, '-zram-')
+        continue-on-error: true
+        run: |
+          free -g; swapon --show; sudo zramctl
+          cat /proc/pressure/memory
+          grep oom_kill /proc/vmstat
+          echo "--- samples"; cat /tmp/mem-samples.log
       - name: Upload
         if: always() && steps.harness.outcome == 'success'
         uses: ./.harness/.github/actions/bench-finish
