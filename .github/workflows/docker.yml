@@ -97,9 +97,9 @@ jobs:
           echo "$mem" | sudo tee /sys/block/zram0/disksize >/dev/null
           sudo mkswap /dev/zram0 >/dev/null && sudo swapon -p 100 /dev/zram0
           sudo sysctl -q vm.swappiness=100 vm.page-cluster=0
-          # zram does not raise tmpfs's size cap (RAM): lift it so the cap is
-          # not what stops the build.
-          sudo mount -o remount,size=48G /var/lib/docker
+          # zram does not raise tmpfs's size cap (RAM): lift it to 1.5x RAM so
+          # the cap is not what stops the build.
+          sudo mount -o remount,size=$((mem * 3 / 2)) /var/lib/docker
           df -h /var/lib/docker; swapon --show; free -g
           # Sample memory every 10 s for the whole job.
           cat > /tmp/sampler.sh <<'SH'
