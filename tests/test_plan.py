@@ -27,7 +27,9 @@ def run_plan(suite, trigger=None, event="workflow_dispatch", private="false", **
                 "--event", event, "--private", private, "--out", str(tmp / "plan.json")]
         for k, v in cli.items():
             args += [f"--{k}", str(v)]
-        proc = subprocess.run(args, capture_output=True, text=True, env={**os.environ, "GITHUB_OUTPUT": str(out)})
+        # Plan as outside a workflow run, even under CI: {run_id} -> "0", {run_attempt} -> "1".
+        env = {k: v for k, v in os.environ.items() if k not in ("GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT")}
+        proc = subprocess.run(args, capture_output=True, text=True, env={**env, "GITHUB_OUTPUT": str(out)})
         outputs = dict(l.split("=", 1) for l in out.read_text().splitlines()) if out.exists() else {}
         plan = json.loads((tmp / "plan.json").read_text()) if (tmp / "plan.json").exists() else None
         return proc.returncode, outputs, plan, proc.stderr
