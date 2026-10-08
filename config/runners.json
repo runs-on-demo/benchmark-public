@@ -253,21 +253,16 @@
         "hardware",
         "rust",
         "node",
+        "docker",
         "cache",
         "burst"
       ],
       "note": "Same AMD Turin CPU as runson-m8a-x64 with twice the RAM; /tmp, /home/runner and /var/lib/docker live in memory (extras=tmpfs).",
-      "suiteNotes": {
-        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner runs out of memory. r8a.2xlarge (64 GB) has the room."
-      },
       "cacheActions": [
         "actions/cache"
       ],
       "suiteLabel": {
         "cache": "extras=s3-cache"
-      },
-      "suiteSkips": {
-        "docker": "Not run: needs more than 32 GB of RAM with tmpfs, where Docker's data root lives in RAM; PostHog's layers plus the build's own memory exceeded it and the runner was shut down mid-build. The 64 GB tmpfs runner builds it."
       }
     },
     {
@@ -1827,10 +1822,10 @@
         "actions/cache"
       ],
       "suiteNotes": {
-        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 16 GB this machine shares between the tmpfs and the build itself, and the runner goes down mid-build."
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: PostHog's image build needs about 29 GB of it, and on 16 GB the runner goes down in the frontend build, about a minute in, even with zram swap."
       },
       "suiteSkips": {
-        "docker": "Not run: needs more than 32 GB of RAM with tmpfs, where Docker's data root lives in RAM; PostHog's layers plus the build's own memory exceeded it and the runner was shut down mid-build. The 64 GB tmpfs runner builds it."
+        "docker": "Not run: needs more than 16 GB of RAM with tmpfs, where Docker's data root lives in RAM; even with zram swap the runner was shut down mid-build. The 32 GB tmpfs runners build it."
       }
     },
     {
@@ -1847,6 +1842,7 @@
         "hardware",
         "rust",
         "node",
+        "docker",
         "cache",
         "ec2-storage",
         "burst"
@@ -1857,13 +1853,7 @@
       },
       "cacheActions": [
         "actions/cache"
-      ],
-      "suiteNotes": {
-        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner loses contact mid-build (out of memory)."
-      },
-      "suiteSkips": {
-        "docker": "Not run: needs more than 32 GB of RAM with tmpfs, where Docker's data root lives in RAM; PostHog's layers plus the build's own memory exceeded it and the runner was shut down mid-build. The 64 GB tmpfs runner builds it."
-      }
+      ]
     },
     {
       "id": "runson-c8g-large",
@@ -2055,6 +2045,7 @@
         "hardware",
         "rust",
         "node",
+        "docker",
         "cache",
         "ec2-storage",
         "burst"
@@ -2064,12 +2055,6 @@
       ],
       "suiteLabel": {
         "cache": "extras=s3-cache"
-      },
-      "suiteNotes": {
-        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner runs out of memory. r8a.2xlarge (64 GB) has the room."
-      },
-      "suiteSkips": {
-        "docker": "Not run: needs more than 32 GB of RAM with tmpfs, where Docker's data root lives in RAM; PostHog's layers plus the build's own memory exceeded it and the runner was shut down mid-build. The 64 GB tmpfs runner builds it."
       }
     },
     {
