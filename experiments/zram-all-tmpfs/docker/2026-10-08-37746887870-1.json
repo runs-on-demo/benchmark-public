@@ -1,0 +1,1484 @@
+{
+  "schemaVersion": 1,
+  "suite": "docker",
+  "workload": {
+    "name": "Docker: PostHog image",
+    "description": "docker buildx build of PostHog's production Dockerfile from a pinned commit, with no build cache: frontend and plugin-server builds, Python dependencies, and layer assembly. The source is fetched first, shallow (depth 1, no tags), in its own timed 'fetch source' phase, and the build uses that local checkout as its context.",
+    "repository": "https://github.com/PostHog/posthog",
+    "ref": "ba81ecf8f5bccbaee4ec5a1613780e0acfd7585b",
+    "source": "shallow fetch (depth 1, no tags) in the 'fetch source' phase; local build context"
+  },
+  "run": {
+    "id": 37746887870,
+    "attempt": 1,
+    "date": "2026-10-08",
+    "startedAt": "2026-10-08T07:59:31Z",
+    "url": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870",
+    "sha": "8a4f1668152474486cf30c2e39500f05157129d5",
+    "event": "workflow_dispatch",
+    "repository": "runs-on-demo/benchmark-public"
+  },
+  "selection": {
+    "event": "workflow_dispatch",
+    "source": "inputs",
+    "origin": {
+      "event": "workflow_dispatch",
+      "source": "inputs",
+      "runId": 37746887870
+    },
+    "runners": "runson-r8a-tmpfs-x64,runson-m8a-2xlarge-tmpfs,runson-m9g-2xlarge-tmpfs,runson-m9g-xlarge-tmpfs",
+    "arch": "all",
+    "iterations": 2,
+    "defaultRunners": 60,
+    "subset": true,
+    "missingDefaultRunners": [
+      "github-x64",
+      "github-x64-8x32",
+      "github-arm64",
+      "runson-m8azn-x64",
+      "runson-m8a-x64",
+      "runson-m8id-x64",
+      "runson-r8a-2xlarge-tmpfs-x64",
+      "runson-m9g-arm64",
+      "runson-m9gd-arm64",
+      "runson-c8g-arm64-8x16",
+      "runson-m9g-arm64-8x32",
+      "blacksmith-x64",
+      "blacksmith-x64-8x32",
+      "blacksmith-arm64",
+      "blacksmith-arm64-8x32",
+      "namespace-x64",
+      "namespace-x64-8x16",
+      "namespace-x64-8x32",
+      "namespace-arm64",
+      "namespace-arm64-apple",
+      "namespace-arm64-8x16",
+      "namespace-arm64-8x32",
+      "warpbuild-x64",
+      "warpbuild-x64-8x32",
+      "warpbuild-arm64",
+      "warpbuild-arm64-xfast",
+      "warpbuild-arm64-xfast-12x",
+      "warpbuild-arm64-8x32",
+      "ubicloud-x64",
+      "ubicloud-premium-x64",
+      "ubicloud-x64-8x32",
+      "ubicloud-premium-x64-8x32",
+      "ubicloud-arm64",
+      "ubicloud-arm64-8x32",
+      "avrea-x64",
+      "avrea-x64-8x32",
+      "avrea-arm64",
+      "avrea-arm64-8x32",
+      "starsling-x64",
+      "starsling-x64-8x32",
+      "codebuild-x64-8x16",
+      "runson-m8azn-gp3tuned-x64",
+      "runson-c8a-x64-8x16",
+      "runson-i7i-large",
+      "runson-i7i-xlarge",
+      "runson-i7i-2xlarge",
+      "runson-m8id-2xlarge",
+      "runson-m9gd-2xlarge",
+      "runson-m8azn-3xlarge",
+      "runson-m8a-2xlarge",
+      "runson-m8a-2xlarge-gp3tuned",
+      "runson-r8a-large",
+      "runson-m8i-xlarge",
+      "runson-m8i-flex-xlarge",
+      "runson-m8i-2xlarge",
+      "runson-m8i-flex-2xlarge"
+    ]
+  },
+  "runners": [
+    {
+      "id": "runson-r8a-tmpfs-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=r8a.xlarge,image=ubuntu26-full-x64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "r8a.xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "note": "Same AMD Turin CPU as runson-m8a-x64 with twice the RAM; /tmp, /home/runner and /var/lib/docker live in memory (extras=tmpfs).",
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner runs out of memory. r8a.2xlarge (64 GB) has the room."
+      }
+    },
+    {
+      "id": "runson-m9g-xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m9g.xlarge,image=ubuntu26-full-arm64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "m9g.xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "note": "Graviton on m9g.xlarge with /tmp, /home/runner and /var/lib/docker in memory (extras=tmpfs): the arm64 counterpart of the x64 tmpfs runners.",
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 16 GB this machine shares between the tmpfs and the build itself, and the runner goes down mid-build."
+      }
+    },
+    {
+      "id": "runson-m9g-2xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m9g.2xlarge,image=ubuntu26-full-arm64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "m9g.2xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "note": "Graviton on m9g.2xlarge with /tmp, /home/runner and /var/lib/docker in memory (extras=tmpfs): the arm64 counterpart of the x64 tmpfs runners.",
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner loses contact mid-build (out of memory)."
+      }
+    },
+    {
+      "id": "runson-m8a-2xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 8,
+      "ramGiB": 32,
+      "label": "runs-on={run_id},family=m8a.2xlarge,image=ubuntu26-full-x64,ssh=false,retry=false,env=demo,extras=tmpfs",
+      "instanceType": "m8a.2xlarge",
+      "storage": "tmpfs",
+      "variant": "YOLO mode (tmpfs)",
+      "suiteNotes": {
+        "docker": "With tmpfs, /var/lib/docker lives in RAM: a PostHog image build outgrows the 32 GB this machine shares between the tmpfs and the build itself, and the runner runs out of memory. r8a.2xlarge (64 GB) has the room."
+      }
+    }
+  ],
+  "results": [
+    {
+      "key": "runson-r8a-tmpfs-x64--1",
+      "runnerId": "runson-r8a-tmpfs-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 17,
+      "jobSeconds": 363,
+      "workloadSeconds": 344,
+      "createdAt": "2026-10-08T07:59:42Z",
+      "startedAt": "2026-10-08T07:59:59Z",
+      "phases": [
+        {
+          "name": "fetch source",
+          "seconds": 20,
+          "status": "success"
+        },
+        {
+          "name": "buildx setup",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "docker build",
+          "seconds": 320,
+          "status": "success"
+        }
+      ],
+      "runnerName": "runs-on--i-0aae0ce045b43c077--2d9e9eb9-7",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870/job/113210439406",
+      "host": {
+        "collectedAt": "2026-10-08T08:00:09+00:00",
+        "arch": "x86_64",
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 26.04.1 LTS",
+        "cpu": {
+          "model": "AMD EPYC 9R45",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 30.73,
+        "memory": {
+          "swapGiB": 30.73,
+          "availableGiB": 29.61,
+          "swapDevices": [
+            {
+              "kind": "zram",
+              "sizeGiB": 30.73
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 100,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "r8a.xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "overlay",
+            "target": "/home/runner",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/home/runner,upperdir=/mnt/tmpfs/upper/home/runner,workdir=/mnt/tmpfs/work/home/runner,uuid=on,nouserxattr",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "tmpfs",
+            "target": "/tmp",
+            "fstype": "tmpfs",
+            "options": "rw,nosuid,nodev,size=16110964k,nr_inodes=1048576,inode64,usrquota",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 27.9,
+            "freeGiB": 11.0
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "tmpfs[/var/lib/docker]",
+            "target": "/var/lib/docker",
+            "fstype": "tmpfs",
+            "options": "rw,noatime,size=48332888k,inode64",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": 30.7,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": "swap",
+              "mountpoint": "[SWAP]"
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 30.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 28.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p13",
+                  "type": "part",
+                  "sizeGiB": 1.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                },
+                {
+                  "name": "nvme0n1p14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "r8a.xlarge",
+          "lifecycle": "spot",
+          "amiId": "ami-0d2a3a19a932ec376",
+          "availabilityZone": "us-east-1b",
+          "region": "us-east-1"
+        },
+        "runsOn": {
+          "version": "v3.4.0",
+          "stackName": "runs-on-demo-v3",
+          "amiId": "ami-0d2a3a19a932ec376",
+          "instanceType": "r8a.xlarge",
+          "lifecycle": "spot",
+          "region": "us-east-1",
+          "availabilityZone": "us-east-1b",
+          "agentArch": "x64"
+        },
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "runs-on--i-0aae0ce045b43c077--2d9e9eb9-7",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu26",
+          "imageVersion": "20261006080959"
+        }
+      }
+    },
+    {
+      "key": "runson-r8a-tmpfs-x64--2",
+      "runnerId": "runson-r8a-tmpfs-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "iteration": 2,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 18,
+      "jobSeconds": 330,
+      "workloadSeconds": 312,
+      "createdAt": "2026-10-08T07:59:42Z",
+      "startedAt": "2026-10-08T08:00:00Z",
+      "phases": [
+        {
+          "name": "fetch source",
+          "seconds": 20,
+          "status": "success"
+        },
+        {
+          "name": "buildx setup",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "docker build",
+          "seconds": 288,
+          "status": "success"
+        }
+      ],
+      "runnerName": "runs-on--i-0333b6293d343ec35--ebb441a9-7",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870/job/113210439479",
+      "host": {
+        "collectedAt": "2026-10-08T08:00:09+00:00",
+        "arch": "x86_64",
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 26.04.1 LTS",
+        "cpu": {
+          "model": "AMD EPYC 9R45",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 30.73,
+        "memory": {
+          "swapGiB": 30.73,
+          "availableGiB": 29.62,
+          "swapDevices": [
+            {
+              "kind": "zram",
+              "sizeGiB": 30.73
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 100,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "r8a.xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "overlay",
+            "target": "/home/runner",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/home/runner,upperdir=/mnt/tmpfs/upper/home/runner,workdir=/mnt/tmpfs/work/home/runner,uuid=on,nouserxattr",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "tmpfs",
+            "target": "/tmp",
+            "fstype": "tmpfs",
+            "options": "rw,nosuid,nodev,size=16110968k,nr_inodes=1048576,inode64,usrquota",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 27.9,
+            "freeGiB": 11.0
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "tmpfs[/var/lib/docker]",
+            "target": "/var/lib/docker",
+            "fstype": "tmpfs",
+            "options": "rw,noatime,size=48332900k,inode64",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": 30.7,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": "swap",
+              "mountpoint": "[SWAP]"
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 30.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 28.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p13",
+                  "type": "part",
+                  "sizeGiB": 1.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                },
+                {
+                  "name": "nvme0n1p14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "r8a.xlarge",
+          "lifecycle": "spot",
+          "amiId": "ami-0d2a3a19a932ec376",
+          "availabilityZone": "us-east-1b",
+          "region": "us-east-1"
+        },
+        "runsOn": {
+          "version": "v3.4.0",
+          "stackName": "runs-on-demo-v3",
+          "amiId": "ami-0d2a3a19a932ec376",
+          "instanceType": "r8a.xlarge",
+          "lifecycle": "spot",
+          "region": "us-east-1",
+          "availabilityZone": "us-east-1b",
+          "agentArch": "x64"
+        },
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "runs-on--i-0333b6293d343ec35--ebb441a9-7",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu26",
+          "imageVersion": "20261006080959"
+        }
+      }
+    },
+    {
+      "key": "runson-m9g-xlarge-tmpfs--1",
+      "runnerId": "runson-m9g-xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "failure",
+      "failedAt": "docker build",
+      "queueSeconds": 18,
+      "jobSeconds": 115,
+      "workloadSeconds": null,
+      "createdAt": "2026-10-08T07:59:42Z",
+      "startedAt": "2026-10-08T08:00:00Z",
+      "phases": [
+        {
+          "name": "fetch source",
+          "seconds": 16,
+          "status": "success"
+        },
+        {
+          "name": "buildx setup",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "docker build",
+          "seconds": 72,
+          "status": "failure"
+        }
+      ],
+      "runnerName": "runs-on--i-07395e7f861742f06--505fea20-6",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870/job/113210439488",
+      "host": null,
+      "logTail": [
+        "#51 17.72 @posthog/frontend:build: \ud83e\uddf1 \"Monaco JSON Worker\": Building",
+        "#51 17.72 @posthog/frontend:build: \ud83e\uddf1 \"Monaco TypeScript Worker\": Building",
+        "#51 17.72 @posthog/frontend:build: \ud83e\uddf1 \"Exporter\": Building",
+        "#51 17.72 @posthog/frontend:build: \ud83e\uddf1 \"Render Query\": Building",
+        "#51 17.72 @posthog/frontend:build: \ud83e\uddf1 \"Toolbar\": Building",
+        "#51 17.77 @posthog/frontend:build: Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:",
+        "#51 17.77 @posthog/frontend:build:   npx update-browserslist-db@latest",
+        "#51 17.77 @posthog/frontend:build:   Why you should do it regularly: https://github.com/browserslist/update-db#readme",
+        "#51 18.05 @posthog/frontend:build: Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:",
+        "#51 18.05 @posthog/frontend:build:   npx update-browserslist-db@latest",
+        "#51 18.05 @posthog/frontend:build:   Why you should do it regularly: https://github.com/browserslist/update-db#readme",
+        "#51 ...",
+        "#45 [posthog-build  5/18] RUN --mount=type=cache,id=uv-libxmlsec1.2.37-2,target=/root/.cache/uv     --mount=type=bind,source=uv.lock,target=uv.lock     --mount=type=bind,source=pyproject.toml,target=pyproject.toml     --mount=type=bind,source=tools/hogli,target=tools/hogli     --mount=type=bind,sour",
+        "#45 29.75       Built zstd==1.5.7.2",
+        "#45 ...",
+        "#51 [frontend-build 16/16] RUN bin/turbo --filter=@posthog/frontend build",
+        "#51 19.53 @posthog/frontend:build: \ud83e\udd47 \"HogQL Parser Worker\": Built in 1.81s",
+        "#51 21.20 @posthog/frontend:build: \u25b2 [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]",
+        "#51 21.20 @posthog/frontend:build:",
+        "#51 21.20 @posthog/frontend:build:     ../products/posthog_ai/frontend/logics/devHmrStreamAbort.ts:41:17:",
+        "#51 21.20 @posthog/frontend:build:       41 \u2502     const hot = (import.meta as ImportMeta & { hot?: ViteHotContex...",
+        "#51 21.20 @posthog/frontend:build:          \u2575                  ~~~~~~~~~~~",
+        "#51 21.20 @posthog/frontend:build:",
+        "#51 21.20 @posthog/frontend:build:   You need to set the output format to \"esm\" for \"import.meta\" to work correctly.",
+        "#51 21.20 @posthog/frontend:build:",
+        "#51 32.49 @posthog/frontend:build: \ud83e\udd47 \"Decompression Worker\": Built in 14.76s",
+        "#51 33.36 @posthog/frontend:build: \u25b2 [WARNING] Expected \";\" but found \"}\" [css-syntax-error]",
+        "#51 33.36 @posthog/frontend:build:",
+        "#51 33.36 @posthog/frontend:build:     ../node_modules/.pnpm/react-data-grid@7.0.0-beta.47_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-data-grid/lib/styles.css:14:8:",
+        "#51 33.36 @posthog/frontend:build:       14 \u2502     Root}@layer rdg.MeasuringCell{.mlln6zg7-0-0-beta-47{contain:st...",
+        "#51 33.36 @posthog/frontend:build:          \u2502         ^",
+        "#51 33.36 @posthog/frontend:build:          \u2575         ;",
+        "#51 33.36 @posthog/frontend:build:",
+        "#51 33.60 @posthog/frontend:build: \ud83e\udd47 \"Monaco Editor Worker\": Built in 15.874s",
+        "#51 33.60 @posthog/frontend:build: \ud83e\udd47 \"Monaco JSON Worker\": Built in 15.875s",
+        "#51 33.82 @posthog/frontend:build: \ud83e\udd47 \"Terminal Worker\": Built in 16.095s",
+        "#51 33.84 @posthog/frontend:build: \ud83e\udd47 \"Monaco TypeScript Worker\": Built in 16.116s",
+        "#51 41.88 @posthog/frontend:build: \ud83e\udd47 \"Render Query\": Built in 24.156s",
+        "#51 43.51 @posthog/frontend:build: \ud83e\udd47 \"Toolbar\": Built in 25.78s",
+        "##[error]The runner has received a shutdown signal. This can happen when the runner service is stopped, or a manually started runner is canceled."
+      ]
+    },
+    {
+      "key": "runson-m9g-xlarge-tmpfs--2",
+      "runnerId": "runson-m9g-xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "iteration": 2,
+      "status": "failure",
+      "failedAt": "docker build",
+      "queueSeconds": 18,
+      "jobSeconds": 114,
+      "workloadSeconds": null,
+      "createdAt": "2026-10-08T07:59:42Z",
+      "startedAt": "2026-10-08T08:00:00Z",
+      "phases": [
+        {
+          "name": "fetch source",
+          "seconds": 25,
+          "status": "success"
+        },
+        {
+          "name": "buildx setup",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "docker build",
+          "seconds": 73,
+          "status": "failure"
+        }
+      ],
+      "runnerName": "runs-on--i-0c615f80e2626ccf3--f96a1739-d",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870/job/113210439423",
+      "host": null,
+      "logTail": [
+        "#51 17.28 @posthog/frontend:build: \ud83e\uddf1 \"Monaco TypeScript Worker\": Building",
+        "#51 17.28 @posthog/frontend:build: \ud83e\uddf1 \"Monaco JSON Worker\": Building",
+        "#51 17.28 @posthog/frontend:build: \ud83e\uddf1 \"Render Query\": Building",
+        "#51 17.28 @posthog/frontend:build: \ud83e\uddf1 \"Exporter\": Building",
+        "#51 17.28 @posthog/frontend:build: \ud83e\uddf1 \"Toolbar\": Building",
+        "#51 17.33 @posthog/frontend:build: Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:",
+        "#51 17.33 @posthog/frontend:build:   npx update-browserslist-db@latest",
+        "#51 17.33 @posthog/frontend:build:   Why you should do it regularly: https://github.com/browserslist/update-db#readme",
+        "#51 17.53 @posthog/frontend:build: Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:",
+        "#51 17.53 @posthog/frontend:build:   npx update-browserslist-db@latest",
+        "#51 17.53 @posthog/frontend:build:   Why you should do it regularly: https://github.com/browserslist/update-db#readme",
+        "#51 ...",
+        "#46 [posthog-build  5/18] RUN --mount=type=cache,id=uv-libxmlsec1.2.37-2,target=/root/.cache/uv     --mount=type=bind,source=uv.lock,target=uv.lock     --mount=type=bind,source=pyproject.toml,target=pyproject.toml     --mount=type=bind,source=tools/hogli,target=tools/hogli     --mount=type=bind,sour",
+        "#46 28.11       Built zstd==1.5.7.2",
+        "#46 ...",
+        "#51 [frontend-build 16/16] RUN bin/turbo --filter=@posthog/frontend build",
+        "#51 23.56 @posthog/frontend:build: \u25b2 [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]",
+        "#51 23.56 @posthog/frontend:build:",
+        "#51 23.56 @posthog/frontend:build:     ../products/posthog_ai/frontend/logics/devHmrStreamAbort.ts:41:17:",
+        "#51 23.56 @posthog/frontend:build:       41 \u2502     const hot = (import.meta as ImportMeta & { hot?: ViteHotContex...",
+        "#51 23.56 @posthog/frontend:build:          \u2575                  ~~~~~~~~~~~",
+        "#51 23.56 @posthog/frontend:build:",
+        "#51 23.56 @posthog/frontend:build:   You need to set the output format to \"esm\" for \"import.meta\" to work correctly.",
+        "#51 23.56 @posthog/frontend:build:",
+        "#51 29.28 @posthog/frontend:build: \ud83e\udd47 \"Decompression Worker\": Built in 11.999s",
+        "#51 32.15 @posthog/frontend:build: \u25b2 [WARNING] Expected \";\" but found \"}\" [css-syntax-error]",
+        "#51 32.15 @posthog/frontend:build:",
+        "#51 32.15 @posthog/frontend:build:     ../node_modules/.pnpm/react-data-grid@7.0.0-beta.47_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-data-grid/lib/styles.css:14:8:",
+        "#51 32.15 @posthog/frontend:build:       14 \u2502     Root}@layer rdg.MeasuringCell{.mlln6zg7-0-0-beta-47{contain:st...",
+        "#51 32.15 @posthog/frontend:build:          \u2502         ^",
+        "#51 32.15 @posthog/frontend:build:          \u2575         ;",
+        "#51 32.15 @posthog/frontend:build:",
+        "#51 32.23 @posthog/frontend:build: \ud83e\udd47 \"Monaco TypeScript Worker\": Built in 14.952s",
+        "#51 32.27 @posthog/frontend:build: \ud83e\udd47 \"Monaco Editor Worker\": Built in 14.993s",
+        "#51 32.27 @posthog/frontend:build: \ud83e\udd47 \"HogQL Parser Worker\": Built in 14.993s",
+        "#51 32.27 @posthog/frontend:build: \ud83e\udd47 \"Monaco JSON Worker\": Built in 14.997s",
+        "#51 32.28 @posthog/frontend:build: \ud83e\udd47 \"Terminal Worker\": Built in 15.006s",
+        "#51 39.85 @posthog/frontend:build: \ud83e\udd47 \"Render Query\": Built in 22.572s",
+        "#51 41.76 @posthog/frontend:build: \ud83e\udd47 \"Toolbar\": Built in 24.485s",
+        "##[error]The runner has received a shutdown signal. This can happen when the runner service is stopped, or a manually started runner is canceled."
+      ]
+    },
+    {
+      "key": "runson-m9g-2xlarge-tmpfs--1",
+      "runnerId": "runson-m9g-2xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 17,
+      "jobSeconds": 271,
+      "workloadSeconds": 255,
+      "createdAt": "2026-10-08T07:59:42Z",
+      "startedAt": "2026-10-08T07:59:59Z",
+      "phases": [
+        {
+          "name": "fetch source",
+          "seconds": 23,
+          "status": "success"
+        },
+        {
+          "name": "buildx setup",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "docker build",
+          "seconds": 229,
+          "status": "success"
+        }
+      ],
+      "runnerName": "runs-on--i-0f715924d6e2b2ce1--e1d70988-4",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870/job/113210439438",
+      "host": {
+        "collectedAt": "2026-10-08T08:00:07+00:00",
+        "arch": "aarch64",
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 26.04.1 LTS",
+        "cpu": {
+          "model": "Neoverse-V3",
+          "vendor": "ARM",
+          "logicalCpus": 8,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": null
+        },
+        "memoryGiB": 30.72,
+        "memory": {
+          "swapGiB": 30.72,
+          "availableGiB": 29.39,
+          "swapDevices": [
+            {
+              "kind": "zram",
+              "sizeGiB": 30.72
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 100,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "m9g.2xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "overlay",
+            "target": "/home/runner",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/home/runner,upperdir=/mnt/tmpfs/upper/home/runner,workdir=/mnt/tmpfs/work/home/runner,uuid=on,nouserxattr",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "tmpfs",
+            "target": "/tmp",
+            "fstype": "tmpfs",
+            "options": "rw,nosuid,nodev,size=16103856k,nr_inodes=1048576,inode64,usrquota",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 28.0,
+            "freeGiB": 14.1
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "tmpfs[/var/lib/docker]",
+            "target": "/var/lib/docker",
+            "fstype": "tmpfs",
+            "options": "rw,noatime,size=48311564k,inode64",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": 30.7,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": "swap",
+              "mountpoint": "[SWAP]"
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 30.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 29.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p13",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "m9g.2xlarge",
+          "lifecycle": "spot",
+          "amiId": "ami-03311704cbfc7449c",
+          "availabilityZone": "us-east-1b",
+          "region": "us-east-1"
+        },
+        "runsOn": {
+          "version": "v3.4.0",
+          "stackName": "runs-on-demo-v3",
+          "amiId": "ami-03311704cbfc7449c",
+          "instanceType": "m9g.2xlarge",
+          "lifecycle": "spot",
+          "region": "us-east-1",
+          "availabilityZone": "us-east-1b",
+          "agentArch": "arm64"
+        },
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "runs-on--i-0f715924d6e2b2ce1--e1d70988-4",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu26",
+          "imageVersion": "20261006081004"
+        }
+      }
+    },
+    {
+      "key": "runson-m9g-2xlarge-tmpfs--2",
+      "runnerId": "runson-m9g-2xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "iteration": 2,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 24,
+      "jobSeconds": 272,
+      "workloadSeconds": 257,
+      "createdAt": "2026-10-08T07:59:42Z",
+      "startedAt": "2026-10-08T08:00:06Z",
+      "phases": [
+        {
+          "name": "fetch source",
+          "seconds": 25,
+          "status": "success"
+        },
+        {
+          "name": "buildx setup",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "docker build",
+          "seconds": 228,
+          "status": "success"
+        }
+      ],
+      "runnerName": "runs-on--i-0f865a7680262a817--a691082c-1",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870/job/113210439385",
+      "host": {
+        "collectedAt": "2026-10-08T08:00:13+00:00",
+        "arch": "aarch64",
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 26.04.1 LTS",
+        "cpu": {
+          "model": "Neoverse-V3",
+          "vendor": "ARM",
+          "logicalCpus": 8,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": null
+        },
+        "memoryGiB": 30.72,
+        "memory": {
+          "swapGiB": 30.72,
+          "availableGiB": 29.38,
+          "swapDevices": [
+            {
+              "kind": "zram",
+              "sizeGiB": 30.72
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 100,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "m9g.2xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "overlay",
+            "target": "/home/runner",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/home/runner,upperdir=/mnt/tmpfs/upper/home/runner,workdir=/mnt/tmpfs/work/home/runner,uuid=on,nouserxattr",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "tmpfs",
+            "target": "/tmp",
+            "fstype": "tmpfs",
+            "options": "rw,nosuid,nodev,nr_inodes=1048576,inode64,usrquota",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 28.0,
+            "freeGiB": 14.1
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "tmpfs[/var/lib/docker]",
+            "target": "/var/lib/docker",
+            "fstype": "tmpfs",
+            "options": "rw,noatime,size=48311568k,inode64",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": 30.7,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": "swap",
+              "mountpoint": "[SWAP]"
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 30.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 29.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p13",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "m9g.2xlarge",
+          "lifecycle": "spot",
+          "amiId": "ami-03311704cbfc7449c",
+          "availabilityZone": "us-east-1b",
+          "region": "us-east-1"
+        },
+        "runsOn": {
+          "version": "v3.4.0",
+          "stackName": "runs-on-demo-v3",
+          "amiId": "ami-03311704cbfc7449c",
+          "instanceType": "m9g.2xlarge",
+          "lifecycle": "spot",
+          "region": "us-east-1",
+          "availabilityZone": "us-east-1b",
+          "agentArch": "arm64"
+        },
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "runs-on--i-0f865a7680262a817--a691082c-1",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu26",
+          "imageVersion": "20261006081004"
+        }
+      }
+    },
+    {
+      "key": "runson-m8a-2xlarge-tmpfs--1",
+      "runnerId": "runson-m8a-2xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 17,
+      "jobSeconds": 239,
+      "workloadSeconds": 221,
+      "createdAt": "2026-10-08T07:59:42Z",
+      "startedAt": "2026-10-08T07:59:59Z",
+      "phases": [
+        {
+          "name": "fetch source",
+          "seconds": 21,
+          "status": "success"
+        },
+        {
+          "name": "buildx setup",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "docker build",
+          "seconds": 196,
+          "status": "success"
+        }
+      ],
+      "runnerName": "runs-on--i-0c20c8f637b4fc9a9--fcf3b6dc-8",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870/job/113210439455",
+      "host": {
+        "collectedAt": "2026-10-08T08:00:08+00:00",
+        "arch": "x86_64",
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 26.04.1 LTS",
+        "cpu": {
+          "model": "AMD EPYC 9R45",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 8,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 30.73,
+        "memory": {
+          "swapGiB": 30.73,
+          "availableGiB": 29.51,
+          "swapDevices": [
+            {
+              "kind": "zram",
+              "sizeGiB": 30.73
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 100,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "m8a.2xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "overlay",
+            "target": "/home/runner",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/home/runner,upperdir=/mnt/tmpfs/upper/home/runner,workdir=/mnt/tmpfs/work/home/runner,uuid=on,nouserxattr",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "tmpfs",
+            "target": "/tmp",
+            "fstype": "tmpfs",
+            "options": "rw,nosuid,nodev,size=16110272k,nr_inodes=1048576,inode64,usrquota",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 27.9,
+            "freeGiB": 11.0
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "tmpfs[/var/lib/docker]",
+            "target": "/var/lib/docker",
+            "fstype": "tmpfs",
+            "options": "rw,noatime,size=48330812k,inode64",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": 30.7,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": "swap",
+              "mountpoint": "[SWAP]"
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 30.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 28.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p13",
+                  "type": "part",
+                  "sizeGiB": 1.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                },
+                {
+                  "name": "nvme0n1p14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "m8a.2xlarge",
+          "lifecycle": "on-demand",
+          "amiId": "ami-0d2a3a19a932ec376",
+          "availabilityZone": "us-east-1a",
+          "region": "us-east-1"
+        },
+        "runsOn": {
+          "version": "v3.4.0",
+          "stackName": "runs-on-demo-v3",
+          "amiId": "ami-0d2a3a19a932ec376",
+          "instanceType": "m8a.2xlarge",
+          "lifecycle": "on-demand",
+          "region": "us-east-1",
+          "availabilityZone": "us-east-1a",
+          "agentArch": "x64"
+        },
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "runs-on--i-0c20c8f637b4fc9a9--fcf3b6dc-8",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu26",
+          "imageVersion": "20261006080959"
+        }
+      }
+    },
+    {
+      "key": "runson-m8a-2xlarge-tmpfs--2",
+      "runnerId": "runson-m8a-2xlarge-tmpfs",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "iteration": 2,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 15,
+      "jobSeconds": 249,
+      "workloadSeconds": 231,
+      "createdAt": "2026-10-08T07:59:42Z",
+      "startedAt": "2026-10-08T07:59:57Z",
+      "phases": [
+        {
+          "name": "fetch source",
+          "seconds": 21,
+          "status": "success"
+        },
+        {
+          "name": "buildx setup",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "docker build",
+          "seconds": 206,
+          "status": "success"
+        }
+      ],
+      "runnerName": "runs-on--i-08f4127b5a82d5d39--83fd1e84-5",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/37746887870/job/113210439518",
+      "host": {
+        "collectedAt": "2026-10-08T08:00:07+00:00",
+        "arch": "x86_64",
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 26.04.1 LTS",
+        "cpu": {
+          "model": "AMD EPYC 9R45",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 8,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 30.73,
+        "memory": {
+          "swapGiB": 30.73,
+          "availableGiB": 29.46,
+          "swapDevices": [
+            {
+              "kind": "zram",
+              "sizeGiB": 30.73
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 100,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "m8a.2xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "overlay",
+            "target": "/home/runner",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/home/runner,upperdir=/mnt/tmpfs/upper/home/runner,workdir=/mnt/tmpfs/work/home/runner,uuid=on,nouserxattr",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "tmpfs",
+            "target": "/tmp",
+            "fstype": "tmpfs",
+            "options": "rw,nosuid,nodev,nr_inodes=1048576,inode64,usrquota",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 27.9,
+            "freeGiB": 11.0
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "tmpfs[/var/lib/docker]",
+            "target": "/var/lib/docker",
+            "fstype": "tmpfs",
+            "options": "rw,noatime,size=48330804k,inode64",
+            "sizeGiB": 46.1,
+            "freeGiB": 46.0
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": 30.7,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": "swap",
+              "mountpoint": "[SWAP]"
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 30.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 28.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p13",
+                  "type": "part",
+                  "sizeGiB": 1.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                },
+                {
+                  "name": "nvme0n1p14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "m8a.2xlarge",
+          "lifecycle": "spot",
+          "amiId": "ami-0d2a3a19a932ec376",
+          "availabilityZone": "us-east-1b",
+          "region": "us-east-1"
+        },
+        "runsOn": {
+          "version": "v3.4.0",
+          "stackName": "runs-on-demo-v3",
+          "amiId": "ami-0d2a3a19a932ec376",
+          "instanceType": "m8a.2xlarge",
+          "lifecycle": "spot",
+          "region": "us-east-1",
+          "availabilityZone": "us-east-1b",
+          "agentArch": "x64"
+        },
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "runs-on--i-08f4127b5a82d5d39--83fd1e84-5",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu26",
+          "imageVersion": "20261006080959"
+        }
+      }
+    }
+  ]
+}
