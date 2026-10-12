@@ -153,9 +153,9 @@ suite, so a runner's daily points and its hardware-suite points form one
 series. runs-on.com draws them as one line per runner label over time,
 continuing the daily single-thread samples it has kept since July 2026 under
 the same labels. A few runners at other sizes join it for that reason: AWS
-CodeBuild medium and large, GitHub's standard x64 runner, StarSling's default
-label and Namespace on Apple Silicon. To add a runner, add `"cpu-daily"` to its
-`suites` in `config/runners.json`.
+CodeBuild medium and large, GitHub's standard x64 runner and StarSling's
+default label. To add a runner, add `"cpu-daily"` to its `suites` in
+`config/runners.json`.
 
 ## Results format
 
