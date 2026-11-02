@@ -177,11 +177,14 @@ jobs:
           # `bun typecheck` is `bun turbo typecheck`. Turbo's default runs ~10
           # tsgo processes at once, which needs more than 16 GB and gets
           # OOM-killed on runners without swap. 4 tasks fit, on every size.
+          # No turbo cache, local or remote: some runners (Avrea's) turn on
+          # Turborepo remote caching, and typecheck then replayed results an
+          # earlier run had stored ("FULL TURBO" in about a second).
           free -m | awk '/Mem:/{print $3}' > "$RUNNER_TEMP/mem.log"
           ( while true; do free -m | awk '/Mem:/{print $3}'; sleep 1; done ) >> "$RUNNER_TEMP/mem.log" &
           sampler=$!
           status=0
-          bun turbo typecheck --concurrency="$TYPECHECK_CONCURRENCY" || status=$?
+          bun turbo typecheck --concurrency="$TYPECHECK_CONCURRENCY" --cache=local:,remote: || status=$?
           kill "$sampler" 2>/dev/null || true
           python3 - <<'PY'
           import json, os, pathlib
