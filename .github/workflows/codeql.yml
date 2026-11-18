@@ -13,10 +13,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: codeql-timing-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -37,7 +33,7 @@ jobs:
           scans = [
               dict(scan="kafka-java-none", repo="apache/kafka", sha="13f70256db3c994c590e5d262a7cc50b9e973204", language="java-kotlin", mode="none"),
               dict(scan="kafka-java-autobuild", repo="apache/kafka", sha="13f70256db3c994c590e5d262a7cc50b9e973204", language="java-kotlin", mode="autobuild"),
-              dict(scan="grafana-go", repo="grafana/grafana", sha="92f1fba9b4b6700328e99e97328d6639df8ddc3d", language="go", mode="autobuild"),
+              dict(scan="terraform-go", repo="hashicorp/terraform", sha="e15f8b30b6e1ecf0d09bbe143c1525d9d2d51b54", language="go", mode="manual", build="go build ./..."),
               dict(scan="grafana-ts", repo="grafana/grafana", sha="92f1fba9b4b6700328e99e97328d6639df8ddc3d", language="javascript-typescript", mode="none"),
               dict(scan="django-python", repo="django/django", sha="3cff3209e35a560f94801d428cf7f2a3ecb2a051", language="python", mode="none"),
           ]
@@ -55,7 +51,10 @@ jobs:
               if only and s["scan"] not in only:
                   continue
               for r in runners:
-                  for i in range(1, int(cfg.get("iterations", 1)) + 1):
+                  n = cfg.get("iterations", 1)
+                  n = n.get(s["scan"], n.get("default", 1)) if isinstance(n, dict) else n
+                  first = int(cfg.get("first", 1))
+                  for i in range(first, first + int(n)):
                       key = f'{s["scan"]}__{r["runner"]}__{i}'
                       label = r.get("label") or ro.format(id=f"{rid}-{key}".replace("__", "-"), family=r["family"])
                       include.append({**s, "runner": r["runner"], "label": label, "key": key})
@@ -101,6 +100,11 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.mode }}
           dependency-caching: false
+      - name: Build
+        if: matrix.mode == 'manual'
+        env:
+          BUILD: ${{ matrix.build }}
+        run: bash -c "$BUILD"
       - name: CodeQL analyze
         uses: github/codeql-action/analyze@5895b2c9be147bc7f1c75ce72c5cb577febb1907 # v4
         with:
