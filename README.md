@@ -211,7 +211,6 @@ trusts the default branch only).
   rows run on.
 - Prices and cost per run are computed by the site, not here: see the
   methodology on [runs-on.com/benchmarks](https://runs-on.com/benchmarks/).
-- Depot is not included: its terms do not allow benchmarking the platform.
 - boat runs CI jobs only on a paid plan (the free trial refuses every job).
   On its $20 plan it starts at most 12 sandboxes a minute and 60
   an hour; jobs above that wait, which the burst measures as queue time.
