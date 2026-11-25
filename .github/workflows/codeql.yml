@@ -1,14 +1,22 @@
-# One-off measurement for runs-on.com's CodeQL guide: how long a CodeQL scan of
-# a pinned open-source project takes on each runner. Not a benchmark suite:
+# One-off measurement for runs-on.com's CodeQL guide
+# (https://runs-on.com/github-actions/codeql/): how long a CodeQL scan of a
+# pinned open-source project takes on each runner. Not a benchmark suite:
 # nothing is published to results/, and nothing is uploaded to code scanning.
+# The guide's figures are the median of 5 runs per scan and runner (Nov 2026).
+# Dispatch only, never on a schedule or a push: a full pass is 125 jobs.
 name: CodeQL timing
 
 on:
-  push:
-    branches: [claude/project-thread-xsrkcx]
-    paths:
-      - triggers/codeql.json
-      - .github/workflows/codeql.yml
+  workflow_dispatch:
+    inputs:
+      scans:
+        description: "Comma-separated scans (kafka-java-none, kafka-java-autobuild, terraform-go, grafana-ts, django-python); empty: all"
+        required: false
+        default: ""
+      iterations:
+        description: "Runs per scan and runner, 1 to 5"
+        required: false
+        default: "1"
 
 permissions:
   contents: read
@@ -25,10 +33,11 @@ jobs:
       - id: plan
         env:
           RUN_ID: ${{ github.run_id }}
+          SCANS: ${{ inputs.scans }}
+          ITERATIONS: ${{ inputs.iterations }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os
-          cfg = json.load(open("triggers/codeql.json"))
           rid = os.environ["RUN_ID"]
           scans = [
               dict(scan="kafka-java-none", repo="apache/kafka", sha="13f70256db3c994c590e5d262a7cc50b9e973204", language="java-kotlin", mode="none"),
@@ -45,16 +54,20 @@ jobs:
               dict(runner="runson-8x32", family="m8a.2xlarge"),
               dict(runner="runson-8x64", family="r8a.2xlarge"),
           ]
-          only = cfg.get("scans")
+          only = [x.strip() for x in os.environ.get("SCANS", "").split(",") if x.strip()]
+          known = {s["scan"] for s in scans}
+          unknown = sorted(set(only) - known)
+          if unknown:
+              raise SystemExit(f"unknown scans: {unknown}")
+          n = int(os.environ.get("ITERATIONS") or 1)
+          if not 1 <= n <= 5:
+              raise SystemExit("iterations must be 1 to 5")
           include = []
           for s in scans:
               if only and s["scan"] not in only:
                   continue
               for r in runners:
-                  n = cfg.get("iterations", 1)
-                  n = n.get(s["scan"], n.get("default", 1)) if isinstance(n, dict) else n
-                  first = int(cfg.get("first", 1))
-                  for i in range(first, first + int(n)):
+                  for i in range(1, n + 1):
                       key = f'{s["scan"]}__{r["runner"]}__{i}'
                       label = r.get("label") or ro.format(id=f"{rid}-{key}".replace("__", "-"), family=r["family"])
                       include.append({**s, "runner": r["runner"], "label": label, "key": key})
