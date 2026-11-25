@@ -23,7 +23,7 @@ produced, or fork the repository and run it on their own account.
 | `burst` | 15 identical jobs per runner queued at the same instant, each holding its runner for 60 s: how long jobs wait when a spike arrives (scaling speed plus the plan's concurrency limits). Runs in shards of one runner per provider, one shard after another; each shard starts the next once it has published. Some providers cap concurrency per account across both architectures, so a provider's x64 and arm64 runners never share a shard | [burst.yml](.github/workflows/burst.yml) |
 | `smoke` | Picks up a job and records the host, to check which labels this repository can reach (every runner in the catalog by default) | [smoke.yml](.github/workflows/smoke.yml) |
 
-One workflow is not a suite: [codeql.yml](.github/workflows/codeql.yml) times CodeQL scans of pinned open-source projects for runs-on.com's [CodeQL guide](https://runs-on.com/github-actions/codeql/). It runs only when dispatched, publishes nothing to `results/` and uploads nothing to code scanning.
+One workflow is not a suite: [codeql.yml](.github/workflows/codeql.yml) times CodeQL scans of pinned open-source projects for runs-on.com's [CodeQL guide](https://runs-on.com/github-actions/codeql/). It runs only when dispatched on a branch other than `main` (the scans build third-party code, which must not write caches in `main`'s scope), publishes nothing to `results/` and uploads nothing to code scanning.
 
 Workloads are pinned to a commit and a toolchain version
 ([config/workloads.json](config/workloads.json)) so a change in the numbers

@@ -4,6 +4,10 @@
 # nothing is published to results/, and nothing is uploaded to code scanning.
 # The guide's figures are the median of 5 runs per scan and runner (Nov 2026).
 # Dispatch only, never on a schedule or a push: a full pass is 125 jobs.
+# Dispatch it on another branch (gh workflow run codeql.yml --ref <branch>):
+# the scans build third-party code, which could write Actions cache entries in
+# the scope of the branch it runs on, so it refuses to run on the default
+# branch, whose caches every other workflow reads.
 name: CodeQL timing
 
 on:
@@ -23,6 +27,7 @@ permissions:
 
 jobs:
   plan:
+    if: github.ref_name != github.event.repository.default_branch
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
