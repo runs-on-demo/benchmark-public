@@ -4,6 +4,14 @@ name: Cold/warm pair (experiment)
 # earlier job used, then a warm rebuild on a fresh runner that restores that
 # cache. Called once per runner by cachewarm.yml; job names are the plan keys,
 # so the publish step reads each half as its own row.
+#
+# variant "" : actions/cache (or WarpBuilds/cache) of the cargo registry and
+#              target/, like Swatinem/rust-cache.
+# variant sccache: the provider's built-in remote sccache (RunsOn
+#              remote_cache: sccache through Magic Cache, Avrea's preconfigured
+#              WebDAV endpoint), key prefix salted per run; only the cargo
+#              registry goes through actions/cache, target/ is rebuilt from
+#              sccache hits.
 on:
   workflow_call:
     inputs:
@@ -14,6 +22,7 @@ on:
       provider: { type: string, required: true }
       cache-action: { type: string, required: true }
       cache-key: { type: string, required: true }
+      variant: { type: string, required: false, default: "" }
 
 permissions:
   contents: read
@@ -23,6 +32,17 @@ env:
   CARGO_TERM_COLOR: never
   RUST_FEATURES: "rodio-backend,media-control,image,notify,fzf"
   CACHE_KEY: ${{ inputs.cache-key }}
+  VARIANT: ${{ inputs.variant }}
+  SCCACHE_VERSION: v0.20.1
+  CACHE_PATHS_FULL: |
+    ~/.cargo/registry/index
+    ~/.cargo/registry/cache
+    ~/.cargo/git/db
+    work/target
+  CACHE_PATHS_REGISTRY: |
+    ~/.cargo/registry/index
+    ~/.cargo/registry/cache
+    ~/.cargo/git/db
 
 jobs:
   cold:
@@ -43,10 +63,31 @@ jobs:
       - name: Magic Cache
         # On RunsOn (extras=s3-cache), actions/cache goes to the S3 bucket in
         # the customer's account.
-        if: inputs.provider == 'RunsOn'
+        if: inputs.provider == 'RunsOn' && inputs.variant != 'sccache'
         uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d # v2.4.0
+      - name: Magic Cache with remote sccache
+        if: inputs.provider == 'RunsOn' && inputs.variant == 'sccache'
+        uses: runs-on/action@008da5981d898461f8a5a7af57d9b6fce4e01ea4 # v2.7.1
+        with:
+          remote_cache: sccache
       - name: Probe transparent caches
         run: bash .harness/bin/cache-probe.sh "$RUNNER_TEMP/bench/probe.json"
+      - name: sccache setup
+        if: inputs.variant == 'sccache'
+        run: |
+          case "$(uname -m)" in x86_64) a=x86_64;; aarch64) a=aarch64;; esac
+          d="sccache-$SCCACHE_VERSION-$a-unknown-linux-musl"
+          curl -fsSL "https://github.com/mozilla/sccache/releases/download/$SCCACHE_VERSION/$d.tar.gz" | tar xz -C "$RUNNER_TEMP"
+          sudo install "$RUNNER_TEMP/$d/sccache" /usr/local/bin/sccache
+          # A prefix no earlier run used: the cold job can only miss, the warm
+          # job only hits what its cold job wrote.
+          {
+            echo "RUSTC_WRAPPER=sccache"
+            echo "CARGO_INCREMENTAL=0"
+            echo "SCCACHE_WEBDAV_KEY_PREFIX=$CACHE_KEY"
+          } >> "$GITHUB_ENV"
+          echo "endpoint host: $(printf '%s' "${SCCACHE_WEBDAV_ENDPOINT:-none}" | sed -E 's#^([a-z]+://[^/]+).*#\1#')"
+          [ -n "${SCCACHE_WEBDAV_ENDPOINT:-}" ] || { echo "::error::no SCCACHE_WEBDAV_ENDPOINT on this runner"; exit 1; }
       - name: "phase: checkout"
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -71,34 +112,33 @@ jobs:
         id: restore-gha
         if: inputs.cache-action == 'actions/cache'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with: &cache-paths
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            work/target
+        with: &cache-restore
+          path: ${{ inputs.variant == 'sccache' && env.CACHE_PATHS_REGISTRY || env.CACHE_PATHS_FULL }}
           key: ${{ inputs.cache-key }}
           fail-on-cache-miss: ${{ github.job == 'warm' }}
       - name: "phase: cache restore"
         id: restore-warp
         if: inputs.cache-action == 'WarpBuilds/cache'
         uses: WarpBuilds/cache/restore@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
-        with: *cache-paths
+        with: *cache-restore
       - name: Check cache state
         env:
           HIT: ${{ steps.restore-gha.outputs.cache-hit || steps.restore-warp.outputs.cache-hit }}
         run: |
           target=$(du -sm work/target 2>/dev/null | cut -f1); target=${target:-0}
           registry=$(du -sm ~/.cargo/registry 2>/dev/null | cut -f1); registry=${registry:-0}
-          echo "stage=$STAGE hit=${HIT:-} target=${target}MiB registry=${registry}MiB"
+          echo "stage=$STAGE variant=${VARIANT:-none} hit=${HIT:-} target=${target}MiB registry=${registry}MiB"
           printf '{"hit":"%s","targetMiB":%s,"registryMiB":%s}\n' "${HIT:-}" "$target" "$registry" > "$RUNNER_TEMP/bench/restore.json"
           if [ "$STAGE" = cold ]; then
             # Cold means cold: no hit and no build output from anywhere.
             [ "${HIT:-}" != true ] || { echo "::error::cold job hit the cache"; exit 1; }
             [ "$target" -eq 0 ] || { echo "::error::cold job found a target dir"; exit 1; }
+          elif [ "$VARIANT" = sccache ]; then
+            [ "${HIT:-}" = true ] || { echo "::error::warm job restored no registry"; exit 1; }
           else
             [ "${HIT:-}" = true ] && [ "$target" -gt 100 ] || { echo "::error::warm job restored no build output"; exit 1; }
           fi
+          if [ "$VARIANT" = sccache ]; then sccache --start-server && sccache --zero-stats >/dev/null; fi
       - name: "phase: cargo test"
         working-directory: work
         run: cargo test --no-default-features --features "$RUST_FEATURES" 2>&1 | tee "$RUNNER_TEMP/bench/test.log"
@@ -108,56 +148,24 @@ jobs:
       - name: "phase: cargo clippy (no features)"
         working-directory: work
         run: cargo clippy --no-default-features -- -D warnings 2>&1 | tee "$RUNNER_TEMP/bench/clippy2.log"
+      - name: sccache stats
+        if: always() && inputs.variant == 'sccache'
+        run: |
+          sccache --show-stats --stats-format json > "$RUNNER_TEMP/bench/sccache.json" || true
+          sccache --show-stats || true
       - name: "phase: cache save"
         if: github.job == 'cold' && inputs.cache-action == 'actions/cache'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            work/target
+        with: &cache-save
+          path: ${{ inputs.variant == 'sccache' && env.CACHE_PATHS_REGISTRY || env.CACHE_PATHS_FULL }}
           key: ${{ inputs.cache-key }}
       - name: "phase: cache save"
         if: github.job == 'cold' && inputs.cache-action == 'WarpBuilds/cache'
         uses: WarpBuilds/cache/save@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
-        with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            work/target
-          key: ${{ inputs.cache-key }}
+        with: *cache-save
       - name: Metrics
         if: always()
-        run: |
-          python3 - <<'PY'
-          import json, os, pathlib, re
-          b = pathlib.Path(os.environ["RUNNER_TEMP"]) / "bench"
-          def load(n):
-              try: return json.loads((b / n).read_text())
-              except Exception: return None
-          def count(n, word):
-              try: return len(re.findall(rf"^\s+{word} ", (b / n).read_text(), re.M))
-              except Exception: return None
-          m = load("metrics.json") or {}
-          size = None
-          try:
-              size = int(os.popen("du -sm work/target | cut -f1").read().strip())
-          except Exception: pass
-          m["cachewarm"] = {
-              "stage": os.environ["STAGE"],
-              "cacheKey": os.environ["CACHE_KEY"],
-              "restore": load("restore.json"),
-              "compiled": {n: count(f"{n}.log", "Compiling") for n in ("test", "clippy", "clippy2")},
-              "checked": {n: count(f"{n}.log", "Checking") for n in ("clippy", "clippy2")},
-              "downloaded": count("test.log", "Downloaded"),
-              "targetMiBAfter": size,
-              "probe": load("probe.json"),
-          }
-          (b / "metrics.json").write_text(json.dumps(m, indent=1))
-          print(json.dumps(m["cachewarm"], indent=1)[:3000])
-          PY
+        run: python3 .harness/bin/cachewarm-metrics.py
       - name: Delete cache entry
         # GitHub's cache storage is shared by the repository: drop the pair's
         # entry once the warm job has used it.

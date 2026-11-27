@@ -1,0 +1,110 @@
+name: Cache impact, cold vs warm Docker build (experiment)
+
+# Branch-only experiment: results go to experiments/<branch>/cachewarm/, never
+# to results/. Every runner runs a pair (cachewarm-docker-pair.yml): a cold build of
+# spotify-player that must miss a brand new cache key, then a warm rebuild on a
+# fresh runner that restores what the cold job saved.
+on:
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "default, all, or comma-separated runner ids from config/runners.json"
+        required: false
+        default: ""
+      arch:
+        description: "all, x64 or arm64 (empty: all)"
+        required: false
+        default: ""
+  push:
+    branches: [claude/project-thread-8n7ea8]
+    paths:
+      - triggers/cachewarm-docker.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cachewarm-docker-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    # The first push of a new branch matches every paths filter: never a run.
+    if: github.event_name != 'push' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - id: plan
+        env:
+          RUNNERS: ${{ inputs.runners }}
+          ARCH: ${{ inputs.arch }}
+          EVENT: ${{ github.event_name }}
+          PRIVATE: ${{ github.event.repository.private }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -n "$PRIVATE" ] || PRIVATE=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          # The rust suite's runner selection, then one cold/warm pair per runner.
+          GITHUB_OUTPUT="$RUNNER_TEMP/plan.out" python3 bin/plan.py --suite rust \
+            --runners "$RUNNERS" --arch "$ARCH" --iterations "" \
+            --trigger triggers/cachewarm-docker.json --event "$EVENT" \
+            --private "$PRIVATE" --out plan.json || true
+          cat "$RUNNER_TEMP/plan.out"
+          if grep -qx 'run=true' "$RUNNER_TEMP/plan.out"; then
+            echo run=true >> "$GITHUB_OUTPUT"
+            python3 bin/cachewarm-plan.py plan.json --suite cachewarm-docker --label-suites cache,docker --trigger triggers/cachewarm-docker.json
+          else
+            echo run=false >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plan
+          path: plan.json
+
+  pair:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      # type=gha caches in GitHub's storage share the repository's 10 GB.
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    uses: ./.github/workflows/cachewarm-docker-pair.yml
+    permissions:
+      contents: read
+      actions: write
+    with:
+      cold-key: ${{ matrix.coldKey }}
+      warm-key: ${{ matrix.warmKey }}
+      cold-label: ${{ matrix.coldLabel }}
+      warm-label: ${{ matrix.warmLabel }}
+      provider: ${{ matrix.provider }}
+      cache-action: ${{ matrix.cacheAction }}
+      cache-key: ${{ matrix.cacheKey }}
+      variant: ${{ matrix.variant }}
+
+  publish:
+    needs: [plan, pair]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      checks: read
+      id-token: write
+    concurrency:
+      group: publish-results-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: ./.github/actions/publish
+        with:
+          cost-reader-role: ${{ vars.AWS_COST_READER_ROLE_ARN }}
+          runs-on-log-group: ${{ vars.RUNS_ON_LOG_GROUP }}
+          aws-region: ${{ vars.AWS_REGION }}

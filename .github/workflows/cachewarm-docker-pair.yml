@@ -1,0 +1,132 @@
+name: Cold/warm Docker pair (experiment)
+
+# One runner's Docker pair, on the docker suite's PostHog build. Cold: a fresh
+# BuildKit builder, no cache-from, layers exported with cache-to type=gha
+# (mode=max) under a scope no earlier job used. Warm: a fresh runner and
+# builder import that scope and rebuild. type=gha goes wherever the provider
+# routes the GitHub cache (RunsOn Magic Cache S3, Blacksmith, Ubicloud; Avrea
+# through its documented url_v2), GitHub's cache otherwise.
+on:
+  workflow_call:
+    inputs:
+      cold-key: { type: string, required: true }
+      warm-key: { type: string, required: true }
+      cold-label: { type: string, required: true }
+      warm-label: { type: string, required: true }
+      provider: { type: string, required: true }
+      cache-action: { type: string, required: true }
+      cache-key: { type: string, required: true }
+      variant: { type: string, required: false, default: "" }
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  POSTHOG_SHA: ba81ecf8f5bccbaee4ec5a1613780e0acfd7585b
+  DOCKER_BUILD_SUMMARY: "false"
+  DOCKER_BUILD_RECORD_UPLOAD: "false"
+  CACHE_KEY: ${{ inputs.cache-key }}
+  VARIANT: ${{ inputs.variant }}
+  # Avrea serves type=gha only when url_v2 points at its cache (its docs).
+  GHA_CACHE: type=gha,scope=${{ inputs.cache-key }}${{ inputs.provider == 'Avrea' && ',url_v2=https://cache.avrea.com/' || '' }}
+
+jobs:
+  cold:
+    name: ${{ inputs.cold-key }}
+    runs-on: ${{ fromJSON(inputs.cold-label) }}
+    timeout-minutes: 90
+    env:
+      STAGE: cold
+      KEY: ${{ inputs.cold-key }}
+    steps: &docker-steps
+      - id: harness
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          path: .harness
+          persist-credentials: false
+      - name: Host info
+        uses: ./.harness/.github/actions/bench-start
+      - name: Magic Cache
+        if: inputs.provider == 'RunsOn'
+        uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d # v2.4.0
+      - name: Probe transparent caches
+        run: bash .harness/bin/cache-probe.sh "$RUNNER_TEMP/bench/probe.json"
+      - name: Make room
+        run: |
+          root=$(docker info -f '{{.DockerRootDir}}' 2>/dev/null || true)
+          [ -d "$root" ] || root=/
+          free=$(df -BG --output=avail "$root" | tail -1 | tr -dc 0-9)
+          echo "free at $root: ${free}G"
+          if [ "$free" -lt 40 ]; then
+            sudo rm -rf /opt/hostedtoolcache /usr/local/lib/android /usr/share/dotnet /opt/ghc || true
+            df -h "$root"
+          fi
+      - name: "phase: fetch source"
+        run: |
+          mkdir posthog && cd posthog
+          git init -q
+          git remote add origin https://github.com/PostHog/posthog.git
+          git fetch -q --depth=1 --no-tags origin "$POSTHOG_SHA"
+          git checkout -q --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$POSTHOG_SHA"
+      - name: "phase: buildx setup"
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Expose GitHub runtime to the CLI
+        # type=gha needs the cache URL and runtime token, which only actions
+        # see; this exports them for the docker CLI.
+        uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487 # v4.0.0
+      - name: "phase: docker build"
+        # Cold: no cache-from, so nothing can be imported; the layers are
+        # exported at the end of the step (export time included). Warm: import
+        # only, nothing exported.
+        env:
+          BUILDKIT_PROGRESS: plain
+        run: |
+          if [ "$STAGE" = cold ]; then cache="--cache-to=$GHA_CACHE,mode=max"; else cache="--cache-from=$GHA_CACHE"; fi
+          docker buildx build --progress=plain --provenance=false --sbom=false \
+            --output=type=cacheonly $cache posthog 2>&1 | tee "$RUNNER_TEMP/bench/docker-build.log"
+      - name: Check cache use
+        if: always()
+        run: |
+          log="$RUNNER_TEMP/bench/docker-build.log"
+          cached=$(grep -cE '^#[0-9]+ CACHED$' "$log" || true)
+          echo "stage=$STAGE cached steps=$cached"
+          if [ "$STAGE" = cold ] && [ "$cached" -gt 0 ]; then echo "::error::cold build reused $cached cached steps"; exit 1; fi
+          if [ "$STAGE" = warm ] && [ "$cached" -eq 0 ]; then echo "::error::warm build reused nothing"; exit 1; fi
+      - name: Metrics
+        if: always()
+        run: python3 .harness/bin/cachewarm-metrics.py
+      - name: Delete cache entries
+        if: always() && github.job == 'warm'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # type=gha writes many entries whose keys start with the scope's
+          # buildkit prefix; drop every entry of this pair's scope.
+          for page in 1 2 3 4 5; do
+            keys=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/caches?per_page=100&page=$page" \
+              | python3 -c "import json,sys,os;print('\n'.join(c['key'] for c in json.load(sys.stdin).get('actions_caches',[]) if os.environ['CACHE_KEY'] in c['key']))") || break
+            [ -n "$keys" ] || break
+            while read -r k; do
+              curl -fsS -X DELETE -H "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/caches?key=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "$k")" -o /dev/null || true
+            done <<< "$keys"
+          done
+          echo done
+      - name: Upload
+        if: always() && steps.harness.outcome == 'success'
+        uses: ./.harness/.github/actions/bench-finish
+        with:
+          key: ${{ env.KEY }}
+
+  warm:
+    needs: cold
+    if: needs.cold.result == 'success'
+    name: ${{ inputs.warm-key }}
+    runs-on: ${{ fromJSON(inputs.warm-label) }}
+    timeout-minutes: 90
+    env:
+      STAGE: warm
+      KEY: ${{ inputs.warm-key }}
+    steps: *docker-steps

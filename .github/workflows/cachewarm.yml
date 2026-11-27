@@ -50,13 +50,13 @@ jobs:
           [ -n "$PRIVATE" ] || PRIVATE=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
           # The rust suite's runner selection, then one cold/warm pair per runner.
           GITHUB_OUTPUT="$RUNNER_TEMP/plan.out" python3 bin/plan.py --suite rust \
-            --runners "$RUNNERS" --arch "$ARCH" --iterations 1 \
+            --runners "$RUNNERS" --arch "$ARCH" --iterations "" \
             --trigger triggers/cachewarm.json --event "$EVENT" \
             --private "$PRIVATE" --out plan.json || true
           cat "$RUNNER_TEMP/plan.out"
           if grep -qx 'run=true' "$RUNNER_TEMP/plan.out"; then
             echo run=true >> "$GITHUB_OUTPUT"
-            python3 bin/cachewarm-plan.py plan.json
+            python3 bin/cachewarm-plan.py plan.json --suite cachewarm --label-suites cache --trigger triggers/cachewarm.json
           else
             echo run=false >> "$GITHUB_OUTPUT"
           fi
@@ -72,6 +72,8 @@ jobs:
     name: ${{ matrix.key }}
     strategy:
       fail-fast: false
+      # Roughly one iteration at a time: GitHub-stored caches share 10 GB.
+      max-parallel: 13
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     uses: ./.github/workflows/cachewarm-pair.yml
     permissions:
@@ -85,6 +87,7 @@ jobs:
       provider: ${{ matrix.provider }}
       cache-action: ${{ matrix.cacheAction }}
       cache-key: ${{ matrix.cacheKey }}
+      variant: ${{ matrix.variant }}
 
   publish:
     needs: [plan, pair]
