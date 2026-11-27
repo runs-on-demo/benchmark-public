@@ -1,0 +1,187 @@
+name: Cold/warm pair (experiment)
+
+# One runner's pair: a cold Rust build that saves its cache under a key no
+# earlier job used, then a warm rebuild on a fresh runner that restores that
+# cache. Called once per runner by cachewarm.yml; job names are the plan keys,
+# so the publish step reads each half as its own row.
+on:
+  workflow_call:
+    inputs:
+      cold-key: { type: string, required: true }
+      warm-key: { type: string, required: true }
+      cold-label: { type: string, required: true }
+      warm-label: { type: string, required: true }
+      provider: { type: string, required: true }
+      cache-action: { type: string, required: true }
+      cache-key: { type: string, required: true }
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  CARGO_TERM_COLOR: never
+  RUST_FEATURES: "rodio-backend,media-control,image,notify,fzf"
+  CACHE_KEY: ${{ inputs.cache-key }}
+
+jobs:
+  cold:
+    name: ${{ inputs.cold-key }}
+    runs-on: ${{ fromJSON(inputs.cold-label) }}
+    timeout-minutes: 45
+    env:
+      STAGE: cold
+      KEY: ${{ inputs.cold-key }}
+    steps: &pair-steps
+      - id: harness
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          path: .harness
+          persist-credentials: false
+      - name: Host info
+        uses: ./.harness/.github/actions/bench-start
+      - name: Magic Cache
+        # On RunsOn (extras=s3-cache), actions/cache goes to the S3 bucket in
+        # the customer's account.
+        if: inputs.provider == 'RunsOn'
+        uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d # v2.4.0
+      - name: Probe transparent caches
+        run: bash .harness/bin/cache-probe.sh "$RUNNER_TEMP/bench/probe.json"
+      - name: "phase: checkout"
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: aome510/spotify-player
+          ref: 7dc9d17a7bf5671eb6129fdf9127729f659637fc
+          path: work
+          persist-credentials: false
+      - name: "phase: system packages"
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+            build-essential pkg-config libssl-dev libasound2-dev libdbus-1-dev \
+            libxcb-shape0-dev libxcb-xfixes0-dev
+      - name: "phase: toolchain"
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, 2026-09-30
+        with:
+          toolchain: 1.98.1
+          components: clippy, rustfmt
+      # The key is new for every run (run id, attempt, runner): the cold job
+      # must miss, the warm job must hit exactly what its cold job saved.
+      - name: "phase: cache restore"
+        id: restore-gha
+        if: inputs.cache-action == 'actions/cache'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with: &cache-paths
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            work/target
+          key: ${{ inputs.cache-key }}
+          fail-on-cache-miss: ${{ github.job == 'warm' }}
+      - name: "phase: cache restore"
+        id: restore-warp
+        if: inputs.cache-action == 'WarpBuilds/cache'
+        uses: WarpBuilds/cache/restore@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
+        with: *cache-paths
+      - name: Check cache state
+        env:
+          HIT: ${{ steps.restore-gha.outputs.cache-hit || steps.restore-warp.outputs.cache-hit }}
+        run: |
+          target=$(du -sm work/target 2>/dev/null | cut -f1); target=${target:-0}
+          registry=$(du -sm ~/.cargo/registry 2>/dev/null | cut -f1); registry=${registry:-0}
+          echo "stage=$STAGE hit=${HIT:-} target=${target}MiB registry=${registry}MiB"
+          printf '{"hit":"%s","targetMiB":%s,"registryMiB":%s}\n' "${HIT:-}" "$target" "$registry" > "$RUNNER_TEMP/bench/restore.json"
+          if [ "$STAGE" = cold ]; then
+            # Cold means cold: no hit and no build output from anywhere.
+            [ "${HIT:-}" != true ] || { echo "::error::cold job hit the cache"; exit 1; }
+            [ "$target" -eq 0 ] || { echo "::error::cold job found a target dir"; exit 1; }
+          else
+            [ "${HIT:-}" = true ] && [ "$target" -gt 100 ] || { echo "::error::warm job restored no build output"; exit 1; }
+          fi
+      - name: "phase: cargo test"
+        working-directory: work
+        run: cargo test --no-default-features --features "$RUST_FEATURES" 2>&1 | tee "$RUNNER_TEMP/bench/test.log"
+      - name: "phase: cargo clippy"
+        working-directory: work
+        run: cargo clippy --no-default-features --features "$RUST_FEATURES" -- -D warnings 2>&1 | tee "$RUNNER_TEMP/bench/clippy.log"
+      - name: "phase: cargo clippy (no features)"
+        working-directory: work
+        run: cargo clippy --no-default-features -- -D warnings 2>&1 | tee "$RUNNER_TEMP/bench/clippy2.log"
+      - name: "phase: cache save"
+        if: github.job == 'cold' && inputs.cache-action == 'actions/cache'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            work/target
+          key: ${{ inputs.cache-key }}
+      - name: "phase: cache save"
+        if: github.job == 'cold' && inputs.cache-action == 'WarpBuilds/cache'
+        uses: WarpBuilds/cache/save@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            work/target
+          key: ${{ inputs.cache-key }}
+      - name: Metrics
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re
+          b = pathlib.Path(os.environ["RUNNER_TEMP"]) / "bench"
+          def load(n):
+              try: return json.loads((b / n).read_text())
+              except Exception: return None
+          def count(n, word):
+              try: return len(re.findall(rf"^\s+{word} ", (b / n).read_text(), re.M))
+              except Exception: return None
+          m = load("metrics.json") or {}
+          size = None
+          try:
+              size = int(os.popen("du -sm work/target | cut -f1").read().strip())
+          except Exception: pass
+          m["cachewarm"] = {
+              "stage": os.environ["STAGE"],
+              "cacheKey": os.environ["CACHE_KEY"],
+              "restore": load("restore.json"),
+              "compiled": {n: count(f"{n}.log", "Compiling") for n in ("test", "clippy", "clippy2")},
+              "checked": {n: count(f"{n}.log", "Checking") for n in ("clippy", "clippy2")},
+              "downloaded": count("test.log", "Downloaded"),
+              "targetMiBAfter": size,
+              "probe": load("probe.json"),
+          }
+          (b / "metrics.json").write_text(json.dumps(m, indent=1))
+          print(json.dumps(m["cachewarm"], indent=1)[:3000])
+          PY
+      - name: Delete cache entry
+        # GitHub's cache storage is shared by the repository: drop the pair's
+        # entry once the warm job has used it.
+        if: always() && github.job == 'warm' && inputs.cache-action == 'actions/cache'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsS -X DELETE -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/caches?key=$CACHE_KEY" -o /dev/null && echo deleted || echo "nothing deleted"
+      - name: Upload
+        if: always() && steps.harness.outcome == 'success'
+        uses: ./.harness/.github/actions/bench-finish
+        with:
+          key: ${{ env.KEY }}
+
+  warm:
+    needs: cold
+    # A warm job only makes sense after a cold job that saved its cache.
+    if: needs.cold.result == 'success'
+    name: ${{ inputs.warm-key }}
+    runs-on: ${{ fromJSON(inputs.warm-label) }}
+    timeout-minutes: 45
+    env:
+      STAGE: warm
+      KEY: ${{ inputs.warm-key }}
+    steps: *pair-steps
