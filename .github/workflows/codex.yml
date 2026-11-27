@@ -1,6 +1,11 @@
-name: Rust build (openai/codex, experiment)
+name: Rust build (openai/codex)
 
 on:
+  # Staggered so suites never share a provider's concurrency: day three at
+  # 02:00, hours before the burst (15:00). Schedules only fire on the default
+  # branch.
+  schedule:
+    - cron: "0 2 3-31/3 * *"
   workflow_dispatch:
     inputs:
       runners:
@@ -16,7 +21,7 @@ on:
         required: false
         default: ""
   push:
-    branches: [claude/project-thread-nn3p6h]
+    branches: [main, harness]
     paths:
       - triggers/codex.json
 
