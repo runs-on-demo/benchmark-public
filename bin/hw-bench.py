@@ -201,6 +201,19 @@ def disk_backing(path):
     return out
 
 
+GIB = 2**30
+# The sustained write: 24 GiB, or what the disk holds with SUSTAINED_HEADROOM_GIB
+# left (the default volumes of RunsOn and of GitHub's 2 vCPU runners have about
+# 11 GiB free). Direct I/O already bypasses the VM's page cache and disk.backing
+# names a RAM disk: the size is there to wear out a host-side write-back cache.
+# Capped in time so a slow disk does not hold the job.
+SUSTAINED_TARGET_GIB = 24
+SUSTAINED_MIN_GIB = 4
+SUSTAINED_MAX_SECONDS = 300
+# Room left on the filesystem after the file, so a job never fills its own disk.
+SUSTAINED_HEADROOM_GIB = 4
+
+
 def mem_total_bytes():
     with open("/proc/meminfo") as f:
         for line in f:
@@ -209,33 +222,37 @@ def mem_total_bytes():
     return 0
 
 
-GIB = 2**30
-# The sustained write: more than the VM's RAM (1.5x) and at least 24 GiB, so a
-# page cache, a host write-back cache or a RAM disk cannot absorb it; capped in
-# time so a slow disk does not hold the job.
-SUSTAINED_MIN_GIB = 24
-SUSTAINED_RAM_FACTOR = 1.5
-SUSTAINED_MAX_SECONDS = 300
-# Room left on the filesystem after the file, so a job never fills its own disk.
-SUSTAINED_HEADROOM_GIB = 4
+def maybe_ram(backing, usage):
+    """A workspace no block device is seen under, about the size of RAM: it may
+    be a RAM disk the mount table hides. Writing it full could take the job's
+    memory, so the sustained write skips it."""
+    if backing is None:
+        return usage.total <= 1.1 * mem_total_bytes()
+    under = backing.get("upper") if backing.get("upperdir") else backing.get("mount")
+    on_device = bool(under and str(under.get("source") or "").startswith("/dev/"))
+    return not on_device and usage.total <= 1.1 * mem_total_bytes()
 
 
-def sustained_write(ram):
-    """One sequential write larger than RAM, direct I/O, flushed at the end
-    (end_fsync), timed over the whole file. A workspace that cannot hold it (a
-    tmpfs is the size of RAM) is reported as not fitting, without writing: a
-    RAM disk filled to the brim takes the job's memory with it."""
-    target = max(SUSTAINED_MIN_GIB * GIB, int(mem_total_bytes() * SUSTAINED_RAM_FACTOR))
-    free = shutil.disk_usage(FIO_DIR).free
-    out = {"targetGiB": round(target / GIB, 1), "freeGiB": round(free / GIB, 1)}
-    if ram or free < target + SUSTAINED_HEADROOM_GIB * GIB:
-        out["fits"] = 0
+def sustained_write(ram, backing=None):
+    """One long sequential write, direct I/O, flushed at the end (end_fsync),
+    timed over the whole file. `fits` is 1 when the full target was written.
+    A workspace in RAM is not written: a RAM disk filled to the brim takes the
+    job's memory with it."""
+    target = SUSTAINED_TARGET_GIB * GIB
+    usage = shutil.disk_usage(FIO_DIR)
+    free = usage.free
+    size = min(target, free - SUSTAINED_HEADROOM_GIB * GIB) // 2**20 * 2**20
+    out = {"targetGiB": SUSTAINED_TARGET_GIB, "freeGiB": round(free / GIB, 1), "fits": int(size >= target)}
+    if ram or size < SUSTAINED_MIN_GIB * GIB:
+        return out
+    if maybe_ram(backing, usage):
+        out["skipped"] = "workspace the size of RAM, on no visible block device"
         return out
     data = json.loads(
         sh(
             [
                 "fio", "--name=sustainedWrite", f"--directory={FIO_DIR}", "--ioengine=libaio", "--direct=1",
-                "--bs=1M", "--iodepth=32", "--numjobs=1", f"--size={target}", "--rw=write",
+                "--bs=1M", "--iodepth=32", "--numjobs=1", f"--size={size}", "--rw=write",
                 "--fallocate=none", "--refill_buffers=1", "--end_fsync=1",
                 f"--runtime={SUSTAINED_MAX_SECONDS}", "--output-format=json",
                 "--filename_format=sustainedWrite.$jobnum",
@@ -248,7 +265,6 @@ def sustained_write(ram):
     # job_runtime is in ms and covers the final fsync: the rate the disk kept up, not the cache's.
     seconds = job.get("job_runtime", 0) / 1000
     out.update(
-        fits=1,
         writtenGiB=round(written / GIB, 1),
         seconds=round(seconds, 1),
         MiBps=round(written / 2**20 / seconds, 1) if seconds else None,
@@ -269,7 +285,7 @@ def group_disk():
             for f in FIO_DIR.glob("*"):
                 f.unlink()
         try:
-            out["sustainedWrite"] = sustained_write(bool(backing and backing["ram"]))
+            out["sustainedWrite"] = sustained_write(bool(backing and backing["ram"]), backing)
         except (RuntimeError, subprocess.TimeoutExpired, ValueError, KeyError) as e:
             print(f"sustained write failed: {e}", flush=True)
     finally:
