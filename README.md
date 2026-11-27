@@ -153,7 +153,9 @@ for a disk:
 - `disk.backing`: the mount fio wrote to (`findmnt -T`), and for an overlay
   the mount under its upper layer, where writes land. `ram` is true when that
   is a tmpfs or ramfs, or a RAM block device (zram, `/dev/ram*`, null_blk,
-  pmem) under any filesystem, whatever the top mount says (StarSling's workspace is
+  pmem) under any filesystem, whatever the top mount says. When the upper layer
+  is outside the job's mount namespace (a container rootfs, a tmpfs detached
+  after the overlay was set up), only its path is left to read (StarSling's workspace is
   an overlay on `/run/starsling-tmpfs.*`).
 - `disk.sustainedWrite`: one sequential write of max(1.5 × RAM, 24 GiB),
   direct I/O and flushed at the end, timed over the whole file and capped at

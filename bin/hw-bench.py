@@ -183,9 +183,20 @@ def disk_backing(path):
     if mount["fstype"] == "overlay":
         upper = re.search(r"(?:^|,)upperdir=([^,]+)", mount.get("options") or "")
         if upper:
-            out["upperdir"] = upper.group(1)
-            lower = mount_of(upper.group(1)) or mount
-            out["upper"] = lower
+            path = upper.group(1)
+            out["upperdir"] = path
+            found = mount_of(path)
+            # The upper layer often sits outside the job's mount namespace (a container's
+            # rootfs, a tmpfs detached once the overlay is up): findmnt then answers with
+            # some other mount, the overlay itself or "/". Only a mount holding the path counts.
+            if found and found != mount and (found["target"] == "/" or path.startswith(found["target"].rstrip("/") + "/")) and found["fstype"] != "overlay":
+                lower = out["upper"] = found
+            else:
+                lower = None
+                out["upper"] = None
+                # Unresolved: the path's own words are all there is ("/run/starsling-tmpfs.*").
+                out["ram"] = bool(re.search(r"tmpfs|ramfs|(^|/)shm(/|$)", path))
+                return out
     out["ram"] = lower["fstype"] in RAM_FSTYPES or ram_device(lower.get("source"))
     return out
 

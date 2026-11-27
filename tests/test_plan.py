@@ -309,9 +309,13 @@ class HardwareGroups(unittest.TestCase):
             ({"/ws": {"target": "/home/runner", "source": "/dev/zram1", "fstype": "ext4", "options": "rw"}}, True),
             ({"/ws": overlay("/mnt/fast/upper"), "/mnt/fast/upper": {"target": "/mnt/fast", "source": "/dev/ram0", "fstype": "xfs", "options": "rw"}}, True),
             ({"/ws": {"target": "/", "source": "/dev/nvme0n1p1", "fstype": "ext4", "options": "rw"}}, False),
+            # The upper layer is outside the job's mount namespace (seen on StarSling and Namespace):
+            # findmnt answers with the overlay itself, so the path's words decide.
+            ({"/ws": overlay("/run/starsling-tmpfs.EcOHHA/home-upper")}, True),
+            ({"/ws": overlay("/namespace/containers/rootfs/cbdh2411439aq/fs")}, False),
         ]
         for mounts, ram in cases:
-            hw.mount_of = lambda path, m=mounts: m.get(str(path))
+            hw.mount_of = lambda path, m=mounts: m.get(str(path), m["/ws"])
             self.assertEqual(hw.disk_backing("/ws")["ram"], ram, mounts)
 
     def test_ec2_cpu_runs_only_cpu_groups(self):
