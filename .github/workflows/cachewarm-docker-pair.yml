@@ -81,20 +81,24 @@ jobs:
         if: env.STAGE == 'warm'
         working-directory: posthog
         run: |
-          # A typical commit: one frontend file and one Django file change, so
-          # the frontend bundle, collectstatic and the final layers rebuild
-          # while dependencies and base layers come from the cache.
+          # A frontend-only commit: the frontend bundle and the layers that
+          # copy it rebuild; Python dependencies and Django code stay as they were.
           fe=$(git ls-files 'frontend/src/scenes/*.tsx' | sort | head -1)
-          py=posthog/settings/__init__.py
           echo "// cachewarm $GITHUB_RUN_ID" >> "$fe"
-          echo "# cachewarm $GITHUB_RUN_ID" >> "$py"
-          echo "changed: $fe $py"
+          echo "changed: $fe"
       - name: Cache settings
         run: |
+          cache="$GHA_CACHE"
+          if [ "$VARIANT" = ecr-regcache ]; then
+            # BuildKit cache in the same ECR repository (type=registry),
+            # instead of the GitHub cache API.
+            cache="type=registry,ref=$RUNS_ON_ECR_CACHE:cachewarm-$CACHE_KEY-cache,image-manifest=true,oci-mediatypes=true"
+          fi
+          echo "CACHE_REF=$cache" >> "$GITHUB_ENV"
           if [ "$STAGE" = cold ]; then
             echo "CACHE_FROM=" >> "$GITHUB_ENV"
           else
-            echo "CACHE_FROM=$GHA_CACHE" >> "$GITHUB_ENV"
+            echo "CACHE_FROM=$cache" >> "$GITHUB_ENV"
           fi
           echo "TAG=$IMAGE:$STAGE" >> "$GITHUB_ENV"
       - name: Registry login
@@ -111,7 +115,7 @@ jobs:
           python3 -c "import json,os;d=json.load(open(os.path.expanduser('~/.docker/config.json')));print('auths',list(d.get('auths',{})),'helpers',d.get('credHelpers'),'store',d.get('credsStore'))" 2>/dev/null || echo "no docker config"
           command -v nsc aws || true
           case "$VARIANT" in
-            ecr)
+            ecr|ecr-regcache)
               repo="${RUNS_ON_ECR_CACHE:?RUNS_ON_ECR_CACHE not set: stack has no ephemeral registry}"
               host="${repo%%/*}"; region=$(echo "$host" | cut -d. -f4)
               aws ecr get-login-password --region "$region" | docker login "$host" -u AWS --password-stdin
@@ -153,7 +157,7 @@ jobs:
           outputs: type=cacheonly
           provenance: false
           sbom: false
-          cache-to: ${{ env.GHA_CACHE }},mode=max
+          cache-to: ${{ env.CACHE_REF }},mode=max
       - name: Image size
         if: always()
         run: |
