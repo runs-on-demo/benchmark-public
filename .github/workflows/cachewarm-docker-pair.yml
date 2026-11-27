@@ -139,6 +139,11 @@ jobs:
       - name: Build record
         if: always()
         run: docker buildx history ls --format json 2>/dev/null | head -1 > "$RUNNER_TEMP/bench/buildx-history.json" || true
+      - name: Refresh registry login
+        # Namespace's registry credentials are short-lived: the login taken
+        # before a 5-minute build has expired by the push (401).
+        if: env.VARIANT == 'nscr'
+        run: nsc docker login
       - name: "phase: registry push"
         # Same build, every step already in the builder: this measures the
         # image export and the upload to GHCR.
