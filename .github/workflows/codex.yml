@@ -1,0 +1,178 @@
+name: Rust build (openai/codex)
+
+on:
+  # Staggered so suites never share a provider's concurrency: day three at
+  # 02:00, hours before the burst (15:00). Schedules only fire on the default
+  # branch.
+  schedule:
+    - cron: "0 2 3-31/3 * *"
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "default (the suite's runners; also when empty), all, or comma-separated runner ids from config/runners.json"
+        required: false
+        default: ""
+      arch:
+        description: "all, x64 or arm64 (empty: all). Trigger files are read on push only"
+        required: false
+        default: ""
+      iterations:
+        description: "Runs per runner, at most 5 (empty: 1)"
+        required: false
+        default: ""
+  push:
+    branches: [main, harness]
+    paths:
+      - triggers/codex.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    # The first push of a new branch matches every paths filter: never a run.
+    if: github.event_name != 'push' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - id: plan
+        # Inputs go through env, never into the script text.
+        env:
+          SUITE: codex
+          RUNNERS: ${{ inputs.runners }}
+          ARCH: ${{ inputs.arch }}
+          ITERATIONS: ${{ inputs.iterations }}
+          EVENT: ${{ github.event_name }}
+          PRIVATE: ${{ github.event.repository.private }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -n "$PRIVATE" ] || PRIVATE=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          python3 bin/plan.py --suite "$SUITE" \
+            --runners "$RUNNERS" --arch "$ARCH" --iterations "$ITERATIONS" \
+            --trigger "triggers/$SUITE.json" --event "$EVENT" \
+            --private "$PRIVATE" --out plan.json
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plan
+          path: plan.json
+
+  bench:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 150
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - id: harness
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          path: .harness
+          persist-credentials: false
+      - name: Host info
+        uses: ./.harness/.github/actions/bench-start
+      - name: "phase: checkout"
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: openai/codex
+          ref: 3d86e43b075adeba2193ec5c22ac92f55afd82e6 # rust-v0.172.0
+          path: work
+          persist-credentials: false
+      - name: "phase: system packages"
+        # Codex's own Linux CI dependencies (rust-ci-full.yml).
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+            build-essential pkg-config libcap-dev libasound2-dev
+      - name: "phase: toolchain"
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, 2026-09-30
+        with:
+          # codex-rs/rust-toolchain.toml at the pinned commit.
+          toolchain: 1.99.1
+          components: clippy, rustfmt, rust-src
+      - name: "phase: cargo fetch"
+        # No --locked: Codex's release commits bump the workspace version in
+        # Cargo.toml but not in Cargo.lock (codex-cli stays 0.0.0 there), so
+        # cargo rewrites those entries; no dependency changes.
+        working-directory: work/codex-rs
+        run: cargo fetch
+      - name: "phase: rusty_v8 prebuilt"
+        # The workspace's tests pull in V8 (openai-oss-forks/rusty_v8), whose
+        # prebuilt library Codex publishes on its own releases, not
+        # denoland's. Same download and checksum check as Codex's
+        # .github/actions/setup-rusty-v8.
+        working-directory: work/codex-rs
+        run: |
+          set -euo pipefail
+          v=$(awk '/^name = "v8"$/ {getline; gsub(/version = |"/, ""); print; exit}' Cargo.lock)
+          t=$(rustc -vV | sed -n 's/^host: //p')
+          p=ptrcomp_sandbox_release
+          d="$RUNNER_TEMP/rusty_v8"
+          mkdir -p "$d"
+          for f in "rusty_v8_${p}_${t}.sha256" "librusty_v8_${p}_${t}.a.gz" "src_binding_${p}_${t}.rs"; do
+            curl -fsSL --retry 3 "https://github.com/openai/codex/releases/download/rusty-v8-v${v}/${f}" -o "$d/$f"
+          done
+          (cd "$d" && tr -d '\r' < "rusty_v8_${p}_${t}.sha256" | sha256sum --check -)
+          echo "RUSTY_V8_ARCHIVE=$d/librusty_v8_${p}_${t}.a.gz" >> "$GITHUB_ENV"
+          echo "RUSTY_V8_SRC_BINDING_PATH=$d/src_binding_${p}_${t}.rs" >> "$GITHUB_ENV"
+      - name: "phase: cargo build"
+        # The codex CLI binary, debug profile.
+        working-directory: work/codex-rs
+        run: cargo build --bin codex
+      - name: "phase: cargo clippy"
+        # The whole workspace with its tests, as Codex's Linux CI lints it, but
+        # lints stay warnings (the time is the point, not the verdict), and
+        # codex-voice-host is left out: it needs GStreamer 1.28, newer than
+        # Ubuntu 24.04's.
+        working-directory: work/codex-rs
+        run: cargo clippy --workspace --exclude codex-voice-host --tests
+      - name: Diagnostics
+        if: always() && steps.harness.outcome == 'success'
+        working-directory: work
+        run: |
+          df -h . || true
+          free -m || true
+          du -sh codex-rs/target 2>/dev/null || true
+          du -sh ~/.cargo 2>/dev/null || true
+      - name: Upload
+        if: always() && steps.harness.outcome == 'success'
+        uses: ./.harness/.github/actions/bench-finish
+        with:
+          key: ${{ matrix.key }}
+
+  publish:
+    needs: [plan, bench]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      # Annotations (check runs) carry the job's error message.
+      checks: read
+      # GitHub OIDC token for the read-only RunsOn cost role (publish action).
+      id-token: write
+    concurrency:
+      group: publish-results-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      # Keeps its credentials: the publish step pushes results.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: ./.github/actions/publish
+        with:
+          cost-reader-role: ${{ vars.AWS_COST_READER_ROLE_ARN }}
+          runs-on-log-group: ${{ vars.RUNS_ON_LOG_GROUP }}
+          aws-region: ${{ vars.AWS_REGION }}

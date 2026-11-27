@@ -124,11 +124,18 @@ class UniqueLabels(unittest.TestCase):
             self.assertEqual(rest, catalog.partition(",")[2], "only the runs-on= value changes")
 
     def test_every_suite_gives_each_runs_on_job_a_distinct_label(self):
-        for suite in ("rust", "node", "docker", "hardware", "cache", "burst", "ec2-storage", "ec2-cpu", "cpu-daily"):
+        for suite in ("rust", "codex", "node", "docker", "hardware", "cache", "burst", "ec2-storage", "ec2-cpu", "cpu-daily"):
             rc, out, plan, err = run_plan(suite, None)
             self.assertEqual(rc, 0, f"{suite}: {err}")
             labels = [j["label"] for j in plan["jobs"] if isinstance(j["label"], str) and j["label"].startswith("runs-on=")]
             self.assertEqual(len(labels), len(set(labels)), suite)
+
+    def test_codex_runs_only_4_vcpu_runners(self):
+        rc, out, plan, err = run_plan("codex", None)
+        self.assertEqual(rc, 0, err)
+        vcpu = {r["id"]: r["vcpu"] for r in RUNNERS}
+        self.assertTrue(plan["jobs"])
+        self.assertEqual({vcpu[j["id"]] for j in plan["jobs"]}, {4})
 
     def test_other_providers_labels_are_untouched(self):
         # Outside a workflow run, plan.py fills {run_id} with "0" and {run_attempt} with "1".
@@ -148,7 +155,7 @@ class UniqueLabels(unittest.TestCase):
 
 
 EC2_CPU = [r for r in RUNNERS if "ec2-cpu" in r.get("suites", [])]
-RACE_SUITES = ("rust", "node", "docker", "hardware", "cache", "burst")
+RACE_SUITES = ("rust", "codex", "node", "docker", "hardware", "cache", "burst")
 
 
 class Ec2Cpu(unittest.TestCase):

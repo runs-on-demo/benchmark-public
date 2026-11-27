@@ -13,6 +13,7 @@ produced, or fork the repository and run it on their own account.
 | Suite | What it runs | Workflow |
 |---|---|---|
 | `rust` | Cold build of [aome510/spotify-player](https://github.com/aome510/spotify-player): checkout, apt packages, toolchain, `cargo fmt`, `cargo test`, two `cargo clippy` passes | [rust.yml](.github/workflows/rust.yml) |
+| `codex` | Cold build of [openai/codex](https://github.com/openai/codex)'s Rust workspace (`codex-rs`, 214 crates) at `rust-v0.172.0`: checkout, apt packages, toolchain, `cargo fetch` timed on its own (mostly network: crates and a git fork of rusty_v8), Codex's V8 prebuilt, a debug `cargo build` of the `codex` binary, and `cargo clippy --tests` on the workspace (lints as warnings, `codex-voice-host` left out: it needs GStreamer 1.28). Needs ~11 GB for `target/` plus ~5 GB for `~/.cargo`; RunsOn runners ask for an 80 GB root volume, as in `docker` | [codex.yml](.github/workflows/codex.yml) |
 | `node` | Cold clone, `bun install` and typecheck of [anomalyco/opencode](https://github.com/anomalyco/opencode), at the commit and Bun version of ComputeSDK's [DAX sandbox benchmark](https://www.computesdk.com/benchmarks/sandboxes/dax). A pinned `node-gyp` is installed on every runner in an untimed step, so native modules build the same way everywhere. Typecheck runs 4 turbo tasks on every runner (`--concurrency=4`) so it fits in 16 GB, which makes totals differ from DAX, with turbo's caches off (`--cache=local:,remote:`) so a runner with a Turborepo remote cache can't replay earlier results | [node.yml](.github/workflows/node.yml) |
 | `docker` | `docker buildx build` of [PostHog](https://github.com/PostHog/posthog)'s production Dockerfile at a pinned commit, no build cache. The source is fetched shallow (depth 1, no tags) in its own `fetch source` phase, and the build uses that checkout as its context, so `docker build` times the build, not a git fetch | [docker.yml](.github/workflows/docker.yml) |
 | `hardware` | sysbench, 7-Zip and PassMark CPU; memory bandwidth; fio in the job workspace; downloads; `docker pull`; pgbench | [hardware.yml](.github/workflows/hardware.yml) |
@@ -31,8 +32,11 @@ comes from the runner, not from the project being built.
 
 [config/runners.json](config/runners.json) lists every runner label, the shape
 it advertises, and which suites it joins. Runners from 2 to 12 vCPU (x64 and
-arm64) join every race suite: `rust`, `node`, `docker`, `hardware`, `cache`
-and `burst`. The 16 vCPU EC2 types (`m8id.4xlarge`, `i7i.4xlarge`) run only in
+arm64) join every race suite: `rust`, `node`, `docker`, `hardware`,
+`cache` and `burst`. `codex` runs only each provider's 4 vCPU runner, x64 and
+arm64 where it has both (plus the Ubicloud and Sengi premium tiers): a cold
+Codex build takes 15 to 40 minutes, and 2 vCPU runners mostly run out of disk
+or memory. The 16 vCPU EC2 types (`m8id.4xlarge`, `i7i.4xlarge`) run only in
 `ec2-storage`, where they show how local NVMe scales; they don't race smaller
 runners. The `ec2-<instance type>` runners (`ec2-c6a-large`, `ec2-m9g-large`,
 …) run only in `ec2-cpu`: they measure an EC2 type, not a CI runner, and never
@@ -104,8 +108,8 @@ runners is flagged `"subset": true`, in the file and in `results/index.json`.
 Each measurement suite has a cron (smoke is dispatch-only), staggered so two
 suites never share a provider's concurrency. While the first results build up,
 the suites run every three days: Rust, TypeScript and Docker on day one (02:00,
-04:00, 06:00 UTC), hardware and cache on day two (02:00, 04:00), the burst
-alone on day three at 15:00. EC2 storage runs on the 1st of each month and EC2
+04:00, 06:00 UTC), hardware and cache on day two (02:00, 04:00), Codex on day three at 02:00 and
+the burst on day three at 15:00. EC2 storage runs on the 1st of each month and EC2
 CPU on the 10th, both at 10:00, an hour no other suite uses. CPU daily runs every day
 at 08:00, also an hour of its own. Results also come from manual dispatches and trigger-file
 pushes; `selection.origin.event` says which.
