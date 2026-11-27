@@ -98,7 +98,30 @@ jobs:
           fi
           echo "TAG=$IMAGE:$STAGE" >> "$GITHUB_ENV"
       - name: Registry login
+        if: env.VARIANT == ''
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Provider registry
+        # Variant `ecr`: RunsOn's ephemeral ECR registry in the stack's region
+        # (RUNS_ON_ECR_CACHE, stack option EnableEphemeralRegistry), one tag per
+        # stage. Variant `nscr`: Namespace's registry, nscr.io/<workspace>.
+        if: env.VARIANT != ''
+        run: |
+          set -x
+          env | cut -d= -f1 | grep -iE 'nsc|namespace|runs_on|ecr|aws_' | sort || true
+          python3 -c "import json,os;d=json.load(open(os.path.expanduser('~/.docker/config.json')));print('auths',list(d.get('auths',{})),'helpers',d.get('credHelpers'),'store',d.get('credsStore'))" 2>/dev/null || echo "no docker config"
+          command -v nsc aws || true
+          case "$VARIANT" in
+            ecr)
+              repo="${RUNS_ON_ECR_CACHE:?RUNS_ON_ECR_CACHE not set: stack has no ephemeral registry}"
+              host="${repo%%/*}"; region=$(echo "$host" | cut -d. -f4)
+              aws ecr get-login-password --region "$region" | docker login "$host" -u AWS --password-stdin
+              echo "TAG=$repo:cachewarm-$CACHE_KEY-$STAGE" >> "$GITHUB_ENV" ;;
+            nscr)
+              nsc docker login || true
+              ws=$(nsc workspace describe -o json 2>/dev/null | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('id') or d.get('tenant_id') or d.get('workspace',{}).get('id',''))" || true)
+              [ -n "$ws" ] || { echo "::error::no Namespace workspace id"; exit 1; }
+              echo "TAG=nscr.io/$ws/cachewarm-$CACHE_KEY:$STAGE" >> "$GITHUB_ENV" ;;
+          esac
       - name: "phase: docker build"
         # Build only: the image stays in the builder. Cold imports nothing;
         # warm imports the cold job's cache.
@@ -184,7 +207,7 @@ jobs:
           done
           echo done
       - name: Delete registry package
-        if: always() && github.job == 'warm'
+        if: always() && github.job == 'warm' && env.VARIANT == ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
