@@ -1,0 +1,1714 @@
+{
+  "schemaVersion": 1,
+  "suite": "codex",
+  "workload": {
+    "name": "Rust: OpenAI Codex (experiment)",
+    "description": "Cold build of openai/codex's Rust workspace (codex-rs, 214 crates, ~1,500 dependencies) at rust-v0.172.0: checkout, apt dependencies, toolchain, cargo fetch, a debug build of the codex binary, and cargo clippy --tests on the whole workspace but codex-voice-host (lints as warnings). No cache.",
+    "repository": "https://github.com/openai/codex",
+    "ref": "3d86e43b075adeba2193ec5c22ac92f55afd82e6",
+    "toolchain": "rust 1.99.1"
+  },
+  "run": {
+    "id": 46004093060,
+    "attempt": 1,
+    "date": "2026-11-27",
+    "startedAt": "2026-11-27T13:05:25Z",
+    "url": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060",
+    "sha": "5ab42db82771e0a48e0f01d65d6df4e47832d5b9",
+    "event": "push",
+    "repository": "runs-on-demo/benchmark-public"
+  },
+  "selection": {
+    "event": "push",
+    "source": "trigger",
+    "origin": {
+      "event": "push",
+      "source": "trigger",
+      "runId": 46004093060
+    },
+    "runners": "github-x64,github-arm64,runson-m8a-x64,runson-m9g-arm64,blacksmith-x64,blacksmith-arm64,namespace-x64,namespace-arm64,warpbuild-x64,warpbuild-arm64,ubicloud-x64,ubicloud-arm64,avrea-x64,avrea-arm64,starsling-x64,sengi-x64,sengi-premium-x64,codebuild-x64,boat-x64,github-x64-2x8,runson-m8a-large,blacksmith-x64-2x8,namespace-x64-2x8,warpbuild-x64-2x,ubicloud-x64-2,avrea-x64-2,sengi-x64-2,codebuild-x64-2x3,boat-x64-2x4",
+    "arch": "all",
+    "iterations": 1,
+    "defaultRunners": 0,
+    "subset": false,
+    "missingDefaultRunners": []
+  },
+  "runners": [
+    {
+      "id": "github-x64",
+      "provider": "GitHub",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubuntu-24.04",
+      "tier": "standard",
+      "storage": "network",
+      "note": "Standard 4 vCPU runner GitHub gives public repositories."
+    },
+    {
+      "id": "github-x64-2x8",
+      "provider": "GitHub",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "github24-2cpu-x64",
+      "variant": "2-core",
+      "note": "GitHub 2-core larger runner (the size private repositories get as standard).",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "github-arm64",
+      "provider": "GitHub",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubuntu-24.04-arm",
+      "tier": "standard",
+      "storage": "network",
+      "note": "Standard 4 vCPU arm64 runner GitHub gives public repositories."
+    },
+    {
+      "id": "runson-m8a-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m8a.xlarge,image=ubuntu26-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8a.xlarge",
+      "storage": "ebs",
+      "note": "AMD EPYC Turin general purpose, root on EBS gp3."
+    },
+    {
+      "id": "runson-m9g-arm64",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m9g.xlarge,image=ubuntu26-full-arm64,ssh=false,retry=false,env=demo",
+      "instanceType": "m9g.xlarge",
+      "storage": "ebs",
+      "note": "Graviton5, root on EBS gp3."
+    },
+    {
+      "id": "blacksmith-x64",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "blacksmith-x64-2x8",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "blacksmith-2vcpu-ubuntu-2404",
+      "variant": "2 vCPU",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "blacksmith-arm64",
+      "provider": "Blacksmith",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "blacksmith-4vcpu-ubuntu-2404-arm",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "namespace-x64",
+      "provider": "Namespace",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "nscloud-ubuntu-24.04-amd64-4x16",
+      "variant": "4x16",
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-x64-2x8",
+      "provider": "Namespace",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "nscloud-ubuntu-24.04-amd64-2x8",
+      "variant": "2x8",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "namespace-arm64",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "nscloud-ubuntu-24.04-arm64-4x16",
+      "variant": "4x16",
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "warpbuild-x64",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "warp-ubuntu-2404-x64-4x",
+      "variant": "4x"
+    },
+    {
+      "id": "warpbuild-x64-2x",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "warp-ubuntu-2404-x64-2x",
+      "variant": "2x",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "warpbuild-arm64",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "warp-ubuntu-2404-arm64-4x",
+      "variant": "4x"
+    },
+    {
+      "id": "ubicloud-x64",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubicloud-standard-4-ubuntu-2404",
+      "tier": "standard",
+      "variant": "standard 4"
+    },
+    {
+      "id": "ubicloud-x64-2",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "ubicloud-standard-2-ubuntu-2404",
+      "tier": "standard",
+      "variant": "standard 2",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "ubicloud-arm64",
+      "provider": "Ubicloud",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubicloud-standard-4-arm-ubuntu-2404",
+      "tier": "standard",
+      "variant": "standard 4"
+    },
+    {
+      "id": "avrea-x64",
+      "provider": "Avrea",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "avrea-ubuntu-24.04-4-vcpu",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "avrea-x64-2",
+      "provider": "Avrea",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "avrea-ubuntu-24.04-2-vcpu",
+      "variant": "2 vCPU",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "avrea-arm64",
+      "provider": "Avrea",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "avrea-ubuntu-24.04-arm-4-vcpu",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "starsling-x64",
+      "provider": "StarSling",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "starsling-ubuntu-24.04",
+      "note": "The default StarSling label is a 4 vCPU runner.",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "sengi-x64",
+      "provider": "Sengi",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "sengi-basic-4-ubuntu-2404",
+      "tier": "basic",
+      "variant": "basic 4"
+    },
+    {
+      "id": "sengi-x64-2",
+      "provider": "Sengi",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "sengi-basic-2-ubuntu-2404",
+      "tier": "basic",
+      "variant": "basic 2",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "sengi-premium-x64",
+      "provider": "Sengi",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "sengi-premium-4-ubuntu-2404",
+      "tier": "premium",
+      "variant": "premium 4"
+    },
+    {
+      "id": "codebuild-x64",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "codebuild-benchmark-public-{run_id}-{run_attempt}-ubuntu-8.0-medium",
+      "note": "BUILD_GENERAL1_MEDIUM: 4 vCPU / 8 GB.",
+      "variant": "medium",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "codebuild-x64-2x3",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 3,
+      "label": "codebuild-benchmark-public-{run_id}-{run_attempt}-ubuntu-8.0-small",
+      "variant": "small",
+      "note": "BUILD_GENERAL1_SMALL: 2 vCPU / 3 GB.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "boat-x64-2x4",
+      "provider": "boat",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 4,
+      "label": "boat-small",
+      "note": "boat's small size: 2 vCPU / 4 GB, plus 5 GB of swap.",
+      "variant": "small",
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "boat-x64",
+      "provider": "boat",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "boat",
+      "note": "boat's default size: 4 vCPU / 8 GB, plus 5 GB of swap.",
+      "variant": "default",
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "runson-m8a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 2,
+      "ramGiB": 8,
+      "label": "runs-on={run_id},family=m8a.large,image=ubuntu26-full-x64,ssh=false,retry=false,env=demo",
+      "instanceType": "m8a.large",
+      "storage": "ebs",
+      "note": "AMD EPYC Turin, 4 GB per vCPU.",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    }
+  ],
+  "results": [
+    {
+      "key": "github-x64--1",
+      "runnerId": "github-x64",
+      "provider": "GitHub",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:27Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 6,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 11,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "GitHub Actions 1000023121",
+      "runnerGroup": "GitHub Actions",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747253",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "github-x64-2x8--1",
+      "runnerId": "github-x64-2x8",
+      "provider": "GitHub",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:27Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 5,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 13,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "github24-2cpu-x64-1000023120",
+      "runnerGroup": "default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747295",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "github-arm64--1",
+      "runnerId": "github-arm64",
+      "provider": "GitHub",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:30Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 6,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 10,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "GitHub Actions 1000023122",
+      "runnerGroup": "GitHub Actions",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747350",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "runson-m8a-x64--1",
+      "runnerId": "runson-m8a-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:37Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "runs-on--i-031df2dfaefc9d4f5--b7da402d-0",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747440",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "An error occurred trying to start process '/usr/bin/bash' with working directory '/home/runner/work/benchmark-public/benchmark-public/work'. No such file or directory",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "runson-m9g-arm64--1",
+      "runnerId": "runson-m9g-arm64",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:37Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "runs-on--i-0869b770b3830b9b7--77ea9b11-e",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747205",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "An error occurred trying to start process '/usr/bin/bash' with working directory '/home/runner/work/benchmark-public/benchmark-public/work'. No such file or directory",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "blacksmith-x64--1",
+      "runnerId": "blacksmith-x64",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:31Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 12,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-n7so3rqsdwartggk",
+      "runnerGroup": "blacksmith scale sets - blacksmith-4vcpu-ubuntu-2404",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747279",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "blacksmith-x64-2x8--1",
+      "runnerId": "blacksmith-x64-2x8",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:33Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 11,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "blacksmith-2vcpu-ubuntu-2404-2v4zpjy22xsr6f22",
+      "runnerGroup": "blacksmith scale sets - blacksmith-2vcpu-ubuntu-2404",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747344",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "blacksmith-arm64--1",
+      "runnerId": "blacksmith-arm64",
+      "provider": "Blacksmith",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:34Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 2,
+          "status": "cancelled"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-arm-44l5z5fclxyqme3x",
+      "runnerGroup": "blacksmith scale sets - blacksmith-4vcpu-ubuntu-2404-arm",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747278",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "namespace-x64--1",
+      "runnerId": "namespace-x64",
+      "provider": "Namespace",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:26Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 5,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 5,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 6,
+          "status": "cancelled"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "nsc-runner-ffci5av766m5k",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747798",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "namespace-x64-2x8--1",
+      "runnerId": "namespace-x64-2x8",
+      "provider": "Namespace",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:31Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 5,
+          "status": "cancelled"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "nsc-runner-m1kt110n464sq",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747222",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "namespace-arm64--1",
+      "runnerId": "namespace-arm64",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:38Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "nsc-runner-pqejfrko6qh9e",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747326",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "warpbuild-x64--1",
+      "runnerId": "warpbuild-x64",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:32Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 7,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "warp-4x-x64-wako37rg6e9bdd9j",
+      "runnerGroup": "default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747265",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "warpbuild-x64-2x--1",
+      "runnerId": "warpbuild-x64-2x",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:33Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 6,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "warp-2x-x64-w4h802n7i0ee6bws",
+      "runnerGroup": "default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747234",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "warpbuild-arm64--1",
+      "runnerId": "warpbuild-arm64",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:33Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "warp-4x-arm64-wr0dwupip6v6tl45",
+      "runnerGroup": "default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747289",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "An error occurred trying to start process '/usr/bin/bash' with working directory '/runner/_work/benchmark-public/benchmark-public/work'. No such file or directory",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "ubicloud-x64--1",
+      "runnerId": "ubicloud-x64",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:43Z",
+      "phases": [],
+      "runnerName": "grrfcyhk9qz63khabpa5hskfan",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747324",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr."
+        ]
+      }
+    },
+    {
+      "key": "ubicloud-x64-2--1",
+      "runnerId": "ubicloud-x64-2",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "unavailable",
+      "reason": "no runner picked up the job"
+    },
+    {
+      "key": "ubicloud-arm64--1",
+      "runnerId": "ubicloud-arm64",
+      "provider": "Ubicloud",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "unavailable",
+      "reason": "no runner picked up the job"
+    },
+    {
+      "key": "avrea-x64--1",
+      "runnerId": "avrea-x64",
+      "provider": "Avrea",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:32Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 9,
+          "status": "cancelled"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "avrea-exe-01a21d1e2d7c7234b5d8e6cbf2aac4fe",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747398",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "avrea-x64-2--1",
+      "runnerId": "avrea-x64-2",
+      "provider": "Avrea",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:32Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 9,
+          "status": "cancelled"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "avrea-exe-01a21d1e2d7e75d2817a61643f133053",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747501",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "avrea-arm64--1",
+      "runnerId": "avrea-arm64",
+      "provider": "Avrea",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:39Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "avrea-exe-01a21d1e2d7b71db9e58c162cec39698",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747425",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "starsling-x64--1",
+      "runnerId": "starsling-x64",
+      "provider": "StarSling",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:31Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 5,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 6,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "starsling-z-e62e4d417c9d4cfabe9e87a26b8cac56",
+      "runnerGroup": "default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747384",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "sengi-x64--1",
+      "runnerId": "sengi-x64",
+      "provider": "Sengi",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:36Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 1,
+          "status": "cancelled"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "grr0r1xn495j1m2v777rkcjz1p",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747362",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "sengi-x64-2--1",
+      "runnerId": "sengi-x64-2",
+      "provider": "Sengi",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:35Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 2,
+          "status": "cancelled"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "gr9xdhemq0bj7had8t3g1n0kje",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747593",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "sengi-premium-x64--1",
+      "runnerId": "sengi-premium-x64",
+      "provider": "Sengi",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:33Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 3,
+          "status": "cancelled"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "grfdvxyfar562q0cnth7gkz4ct",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747471",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "codebuild-x64--1",
+      "runnerId": "codebuild-x64",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "unavailable",
+      "reason": "no runner picked up the job"
+    },
+    {
+      "key": "codebuild-x64-2x3--1",
+      "runnerId": "codebuild-x64-2x3",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:42Z",
+      "phases": [],
+      "runnerName": "735a71be-8173-4fe5-95af-9970c7f39078",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747484",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "boat-x64-2x4--1",
+      "runnerId": "boat-x64-2x4",
+      "provider": "boat",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:32Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "cancelled"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "ci-benchmark-public-140523747418",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747418",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "boat-x64--1",
+      "runnerId": "boat-x64",
+      "provider": "boat",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:31Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 6,
+          "status": "cancelled"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "ci-benchmark-public-140523747601",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747601",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    },
+    {
+      "key": "runson-m8a-large--1",
+      "runnerId": "runson-m8a-large",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "cancelled",
+      "reason": "run cancelled before the workload finished",
+      "createdAt": "2026-11-27T13:07:24Z",
+      "startedAt": "2026-11-27T13:07:38Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "system packages",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 0,
+          "status": "skipped"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 0,
+          "status": "skipped"
+        }
+      ],
+      "runnerName": "runs-on--i-0f9cc30590c99940c--e9f2d265-8",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46004093060/job/140523747453",
+      "annotations": {
+        "errors": [
+          "The run was canceled by @crohr.",
+          "The operation was canceled."
+        ]
+      }
+    }
+  ]
+}
