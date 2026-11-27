@@ -72,28 +72,53 @@ jobs:
           test "$(git rev-parse HEAD)" = "$POSTHOG_SHA"
       - name: "phase: buildx setup"
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-      - name: Expose GitHub runtime to the CLI
-        # type=gha needs the cache URL and runtime token, which only actions
-        # see; this exports them for the docker CLI.
-        uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487 # v4.0.0
+      - name: Cache settings
+        run: |
+          if [ "$STAGE" = cold ]; then
+            echo "CACHE_FROM=" >> "$GITHUB_ENV"; echo "CACHE_TO=$GHA_CACHE,mode=max" >> "$GITHUB_ENV"
+          else
+            echo "CACHE_FROM=$GHA_CACHE" >> "$GITHUB_ENV"; echo "CACHE_TO=" >> "$GITHUB_ENV"
+          fi
       - name: "phase: docker build"
         # Cold: no cache-from, so nothing can be imported; the layers are
         # exported at the end of the step (export time included). Warm: import
         # only, nothing exported.
-        env:
-          BUILDKIT_PROGRESS: plain
-        run: |
-          if [ "$STAGE" = cold ]; then cache="--cache-to=$GHA_CACHE,mode=max"; else cache="--cache-from=$GHA_CACHE"; fi
-          docker buildx build --progress=plain --provenance=false --sbom=false \
-            --output=type=cacheonly $cache posthog 2>&1 | tee "$RUNNER_TEMP/bench/docker-build.log"
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: posthog
+          outputs: type=cacheonly
+          provenance: false
+          sbom: false
+          cache-from: ${{ env.CACHE_FROM }}
+          cache-to: ${{ env.CACHE_TO }}
       - name: Check cache use
         if: always()
         run: |
-          log="$RUNNER_TEMP/bench/docker-build.log"
-          cached=$(grep -cE '^#[0-9]+ CACHED$' "$log" || true)
-          echo "stage=$STAGE cached steps=$cached"
-          if [ "$STAGE" = cold ] && [ "$cached" -gt 0 ]; then echo "::error::cold build reused $cached cached steps"; exit 1; fi
-          if [ "$STAGE" = warm ] && [ "$cached" -eq 0 ]; then echo "::error::warm build reused nothing"; exit 1; fi
+          # BuildKit's own record of the build: total, cached and completed steps.
+          docker buildx history ls --format json 2>/dev/null | head -1 > "$RUNNER_TEMP/bench/buildx-history.json" || true
+          python3 - <<'PY'
+          import json, os, sys
+          p = os.path.join(os.environ["RUNNER_TEMP"], "bench", "buildx-history.json")
+          try:
+              h = json.loads(open(p).read().strip() or "{}")
+          except Exception:
+              h = {}
+          # Field names differ across buildx versions.
+          pick = lambda *ks: next((h[k] for k in ks if k in h), None)
+          rec = {"total": pick("TotalSteps", "NumTotalSteps", "total_steps"),
+                 "cached": pick("CachedSteps", "NumCachedSteps", "cached_steps"),
+                 "completed": pick("CompletedSteps", "NumCompletedSteps", "completed_steps"),
+                 "raw": {k: v for k, v in h.items() if "Step" in k or "step" in k}}
+          json.dump(rec, open(os.path.join(os.environ["RUNNER_TEMP"], "bench", "buildkit.json"), "w"))
+          print(rec)
+          stage, cached = os.environ["STAGE"], rec["cached"]
+          if cached is None:
+              print("::warning::buildx history has no cached-step count")
+          elif stage == "cold" and cached > 0:
+              print(f"::error::cold build reused {cached} cached steps"); sys.exit(1)
+          elif stage == "warm" and cached == 0:
+              print("::error::warm build reused nothing"); sys.exit(1)
+          PY
       - name: Metrics
         if: always()
         run: python3 .harness/bin/cachewarm-metrics.py

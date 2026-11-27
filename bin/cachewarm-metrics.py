@@ -57,12 +57,8 @@ if s:
         "writes": st.get("cache_writes"),
         "errors": st.get("cache_errors") and total(st.get("cache_errors")),
     }
-if (b / "docker-build.log").exists():
-    cw["buildkit"] = {
-        "steps": count("docker-build.log", r"^#\d+ \[[^\]]+\] "),
-        "cached": count("docker-build.log", r"^#\d+ CACHED$"),
-        "done": count("docker-build.log", r"^#\d+ DONE "),
-    }
+if load("buildkit.json") is not None:
+    cw["buildkit"] = load("buildkit.json")
 m["cachewarm"] = cw
 (b / "metrics.json").write_text(json.dumps(m, indent=1))
 print(json.dumps({k: v for k, v in cw.items() if k != "probe"}, indent=1))
