@@ -293,6 +293,24 @@ class HardwareGroups(unittest.TestCase):
         for group in hw.GROUPS:
             self.assertIn(f'- name: "{group}"\n        if: contains(env.BENCH_GROUPS, \',{group},\')', text)
 
+    def test_disk_backing_sees_a_workspace_in_ram_under_an_overlay(self):
+        # fio's numbers are RAM when the overlay's upper layer is a tmpfs (StarSling's
+        # /run/starsling-tmpfs.*), whatever the top mount says; a disk under it is not.
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("hw_bench", ROOT / "bin" / "hw-bench.py")
+        hw = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hw)
+        overlay = lambda upper: {"target": "/home/runner", "source": "overlay", "fstype": "overlay", "options": f"rw,lowerdir=/l,upperdir={upper},workdir=/w"}
+        cases = [
+            ({"/ws": overlay("/run/x-tmpfs.1/home-upper"), "/run/x-tmpfs.1/home-upper": {"target": "/run/x-tmpfs.1", "source": "tmpfs", "fstype": "tmpfs", "options": "rw"}}, True),
+            ({"/ws": overlay("/mnt/tmp/upper"), "/mnt/tmp/upper": {"target": "/mnt/tmp", "source": "/dev/vdb", "fstype": "ext4", "options": "rw"}}, False),
+            ({"/ws": {"target": "/", "source": "/dev/vda", "fstype": "ext4", "options": "rw"}}, False),
+            ({"/ws": {"target": "/home/runner", "source": "tmpfs", "fstype": "tmpfs", "options": "rw"}}, True),
+        ]
+        for mounts, ram in cases:
+            hw.mount_of = lambda path, m=mounts: m.get(str(path))
+            self.assertEqual(hw.disk_backing("/ws")["ram"], ram, mounts)
+
     def test_ec2_cpu_runs_only_cpu_groups(self):
         text = (ROOT / ".github" / "workflows" / "ec2-cpu.yml").read_text()
         self.assertIn("suite: ec2-cpu\n", text)

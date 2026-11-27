@@ -143,6 +143,23 @@ network, Docker and PostgreSQL groups are not run (the reusable
 To add an instance type, add an `ec2-<type with dots as dashes>` runner to
 `config/runners.json` with `"suites": ["ec2-cpu"]`.
 
+## Disk
+
+The `disk` group runs fio in `GITHUB_WORKSPACE/.fio` (direct I/O, 2 GiB files):
+QD1 and QD32 random reads, random and sequential writes, and 4k writes each
+followed by `fdatasync`. Two records keep a RAM disk or a cache from passing
+for a disk:
+
+- `disk.backing`: the mount fio wrote to (`findmnt -T`), and for an overlay
+  the mount under its upper layer, where writes land. `ram` is true when that
+  is a tmpfs or ramfs, whatever the top mount says (StarSling's workspace is
+  an overlay on `/run/starsling-tmpfs.*`).
+- `disk.sustainedWrite`: one sequential write of max(1.5 × RAM, 24 GiB),
+  direct I/O and flushed at the end, timed over the whole file and capped at
+  5 minutes. No page cache, host write-back cache or RAM disk holds that much.
+  A workspace in RAM, or one without the space (plus 4 GiB of headroom), is
+  recorded as `fits: 0` and not written.
+
 ## CPU daily
 
 `cpu-daily` runs PassMark PerformanceTest's CPU tests every day at 08:00 UTC,

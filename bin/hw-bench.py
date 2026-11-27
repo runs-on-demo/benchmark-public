@@ -141,15 +141,110 @@ def fio(name, rw, bs, iodepth, jobs, extra, runtime=20):
     }
 
 
+# Filesystems that keep their files in memory: a figure measured on one is RAM, not a disk.
+RAM_FSTYPES = {"tmpfs", "ramfs"}
+
+
+def mount_of(path):
+    """The mount holding a path: {target, source, fstype, options}, from findmnt."""
+    text = sh(["findmnt", "-J", "-T", str(path), "-o", "TARGET,SOURCE,FSTYPE,OPTIONS"], check=False, timeout=30)
+    try:
+        fs = json.loads(text)["filesystems"][0]
+    except (ValueError, KeyError, IndexError):
+        return None
+    return {k: fs.get(k) for k in ("target", "source", "fstype", "options")}
+
+
+def disk_backing(path):
+    """What fio's files really sit on: the mount, and for an overlay the mount
+    under its upper layer (where writes land). `ram` is true when that is a
+    tmpfs or ramfs (a workspace in RAM, whatever its top mount says)."""
+    mount = mount_of(path)
+    if not mount:
+        return None
+    out = {"mount": mount}
+    lower = mount
+    if mount["fstype"] == "overlay":
+        upper = re.search(r"(?:^|,)upperdir=([^,]+)", mount.get("options") or "")
+        if upper:
+            out["upperdir"] = upper.group(1)
+            lower = mount_of(upper.group(1)) or mount
+            out["upper"] = lower
+    out["ram"] = lower["fstype"] in RAM_FSTYPES
+    return out
+
+
+def mem_total_bytes():
+    with open("/proc/meminfo") as f:
+        for line in f:
+            if line.startswith("MemTotal:"):
+                return int(line.split()[1]) * 1024
+    return 0
+
+
+GIB = 2**30
+# The sustained write: more than the VM's RAM (1.5x) and at least 24 GiB, so a
+# page cache, a host write-back cache or a RAM disk cannot absorb it; capped in
+# time so a slow disk does not hold the job.
+SUSTAINED_MIN_GIB = 24
+SUSTAINED_RAM_FACTOR = 1.5
+SUSTAINED_MAX_SECONDS = 300
+# Room left on the filesystem after the file, so a job never fills its own disk.
+SUSTAINED_HEADROOM_GIB = 4
+
+
+def sustained_write(ram):
+    """One sequential write larger than RAM, direct I/O, flushed at the end
+    (end_fsync), timed over the whole file. A workspace that cannot hold it (a
+    tmpfs is the size of RAM) is reported as not fitting, without writing: a
+    RAM disk filled to the brim takes the job's memory with it."""
+    target = max(SUSTAINED_MIN_GIB * GIB, int(mem_total_bytes() * SUSTAINED_RAM_FACTOR))
+    free = shutil.disk_usage(FIO_DIR).free
+    out = {"targetGiB": round(target / GIB, 1), "freeGiB": round(free / GIB, 1)}
+    if ram or free < target + SUSTAINED_HEADROOM_GIB * GIB:
+        out["fits"] = 0
+        return out
+    data = json.loads(
+        sh(
+            [
+                "fio", "--name=sustainedWrite", f"--directory={FIO_DIR}", "--ioengine=libaio", "--direct=1",
+                "--bs=1M", "--iodepth=32", "--numjobs=1", f"--size={target}", "--rw=write",
+                "--fallocate=none", "--refill_buffers=1", "--end_fsync=1",
+                f"--runtime={SUSTAINED_MAX_SECONDS}", "--output-format=json",
+                "--filename_format=sustainedWrite.$jobnum",
+            ],
+            timeout=SUSTAINED_MAX_SECONDS + 300,
+        )
+    )
+    job = data["jobs"][0]
+    written = job["write"]["io_bytes"]
+    # job_runtime is in ms and covers the final fsync: the rate the disk kept up, not the cache's.
+    seconds = job.get("job_runtime", 0) / 1000
+    out.update(
+        fits=1,
+        writtenGiB=round(written / GIB, 1),
+        seconds=round(seconds, 1),
+        MiBps=round(written / 2**20 / seconds, 1) if seconds else None,
+    )
+    return out
+
+
 def group_disk():
     shutil.rmtree(FIO_DIR, ignore_errors=True)
     FIO_DIR.mkdir(parents=True)
     out = {"directory": str(FIO_DIR)}
     try:
+        backing = disk_backing(FIO_DIR)
+        if backing:
+            out["backing"] = backing
         for test in FIO_TESTS:
             out[test[0]] = fio(*test)
             for f in FIO_DIR.glob("*"):
                 f.unlink()
+        try:
+            out["sustainedWrite"] = sustained_write(bool(backing and backing["ram"]))
+        except (RuntimeError, subprocess.TimeoutExpired, ValueError, KeyError) as e:
+            print(f"sustained write failed: {e}", flush=True)
     finally:
         shutil.rmtree(FIO_DIR, ignore_errors=True)
     return {"disk": out}
