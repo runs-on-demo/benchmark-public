@@ -3,7 +3,7 @@
 
 Reads triggers/cacheburst.json (runner ids, burst size, cache size) and writes
 `matrix` to GITHUB_OUTPUT: one entry per runner, with the labels of its seed
-job, its single (baseline) restore and its burst of restores. RunsOn labels
+job and its burst of restores. RunsOn labels
 get their own `runs-on=` value per job (bin/plan.py unique_runs_on) and the
 cache suite's settings (extras=s3-cache).
 """
@@ -13,7 +13,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from plan import merge_label, unique_runs_on  # noqa: E402
+from plan import github_cache_storage, merge_label, unique_runs_on  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -49,17 +49,21 @@ def main() -> int:
                 "cacheAction": action,
                 "cacheKey": f"cacheburst-{rid}-{run_id}-{attempt}",
                 "seedLabel": json.dumps(lab("seed")),
-                "singleLabel": json.dumps(lab("single")),
                 "burstLabels": json.dumps([lab(f"b{i}") for i in range(burst)]),
                 "slots": json.dumps(list(range(burst))),
                 "sizeMiB": size,
+                "githubStorage": github_cache_storage({**r, "cacheAction": action}),
             }
         )
-    matrix = json.dumps({"include": rows}, separators=(",", ":"))
+    # Entries in this repository's GitHub cache share its storage cap (10 GB):
+    # those runners go two at a time (cacheburst.yml), the others all at once.
+    own = [r for r in rows if not r["githubStorage"]]
+    gh = [r for r in rows if r["githubStorage"]]
     out = os.environ.get("GITHUB_OUTPUT")
     if out:
         with open(out, "a") as f:
-            f.write(f"matrix={matrix}\n")
+            for name, part in (("matrix", own), ("matrixGh", gh)):
+                f.write(f"{name}={json.dumps({'include': part}, separators=(',', ':')) if part else ''}\n")
     else:
         print(json.dumps(rows, indent=2))
     print(f"{len(rows)} runners, burst {burst}, {size} MiB", file=sys.stderr)

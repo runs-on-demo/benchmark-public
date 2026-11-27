@@ -1,7 +1,7 @@
 name: Cache restore burst, one runner (experiment)
 
-# One runner: seed a cache entry, restore it from one job alone (baseline),
-# then from a burst of jobs released at the same wall-clock instant. Called
+# One runner: seed a cache entry, then restore it from a burst of jobs
+# released at the same wall-clock instant (no warm-up restore before). Called
 # once per runner by cacheburst.yml. Every restore job uploads one small JSON
 # (cb-<runner>-<stage>-<slot>) that the collect job merges.
 on:
@@ -12,7 +12,6 @@ on:
       cache-action: { type: string, required: true }
       cache-key: { type: string, required: true }
       seed-label: { type: string, required: true }
-      single-label: { type: string, required: true }
       burst-labels: { type: string, required: true }
       slots: { type: string, required: true }
       size-mib: { type: number, required: true }
@@ -30,6 +29,8 @@ jobs:
   seed:
     runs-on: ${{ fromJSON(inputs.seed-label) }}
     timeout-minutes: 30
+    outputs:
+      release: ${{ steps.release.outputs.release }}
     steps:
       - name: Magic Cache
         if: inputs.provider == 'RunsOn'
@@ -51,18 +52,27 @@ jobs:
         if: inputs.cache-action == 'WarpBuilds/cache'
         uses: WarpBuilds/cache/save@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
         with: *save
+      - name: Release time for the burst
+        # No restore before the burst: a provider that keeps entries near the
+        # runner that read them last gets no warm-up.
+        id: release
+        run: echo "release=$(( $(date +%s) + 180 ))" >> "$GITHUB_OUTPUT"
 
-  single:
+  burst:
     needs: seed
-    runs-on: ${{ fromJSON(inputs.single-label) }}
+    if: ${{ !cancelled() && needs.seed.outputs.release != '' }}
+    name: burst ${{ matrix.slot }}
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: ${{ fromJSON(inputs.slots) }}
+    runs-on: ${{ fromJSON(inputs.burst-labels)[matrix.slot] }}
     timeout-minutes: 30
     env:
-      CB_STAGE: single
-      CB_SLOT: "0"
-      CB_RELEASE: "0"
-    outputs:
-      release: ${{ steps.release.outputs.release }}
-    steps: &restore-steps
+      CB_STAGE: burst
+      CB_SLOT: ${{ matrix.slot }}
+      CB_RELEASE: ${{ needs.seed.outputs.release }}
+    steps:
       - name: Magic Cache
         if: inputs.provider == 'RunsOn'
         uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d # v2.4.0
@@ -113,10 +123,6 @@ jobs:
           print(json.dumps(rec))
           json.dump(rec, open(f"out/{e['CB_ID']}-{e['CB_STAGE']}-{e['CB_SLOT']}.json", "w"))
           PY
-      - name: Release time for the burst
-        id: release
-        if: env.CB_STAGE == 'single'
-        run: echo "release=$(( $(date +%s) + 180 ))" >> "$GITHUB_OUTPUT"
       - name: Verify
         run: test "$(du -sb "$CB_PATH" | cut -f1)" -eq $((CB_SIZE_MIB * 1048576))
       - name: Upload
@@ -127,18 +133,3 @@ jobs:
           path: out/
           retention-days: 7
 
-  burst:
-    needs: single
-    if: ${{ !cancelled() && needs.single.outputs.release != '' }}
-    name: burst ${{ matrix.slot }}
-    strategy:
-      fail-fast: false
-      matrix:
-        slot: ${{ fromJSON(inputs.slots) }}
-    runs-on: ${{ fromJSON(inputs.burst-labels)[matrix.slot] }}
-    timeout-minutes: 30
-    env:
-      CB_STAGE: burst
-      CB_SLOT: ${{ matrix.slot }}
-      CB_RELEASE: ${{ needs.single.outputs.release }}
-    steps: *restore-steps
