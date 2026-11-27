@@ -1,6 +1,6 @@
 name: Cold/warm Docker pair (experiment)
 
-# One runner's Docker pair, on the docker suite's PostHog build. Cold: a fresh
+# One runner's Docker pair, on the docker suite's PostHog build, pushed to GHCR. Cold: a fresh
 # BuildKit builder, no cache-from, layers exported with cache-to type=gha
 # (mode=max) under a scope no earlier job used. Warm: a fresh runner and
 # builder import that scope and rebuild. type=gha goes wherever the provider
@@ -21,6 +21,7 @@ on:
 permissions:
   contents: read
   actions: write
+  packages: write
 
 env:
   POSTHOG_SHA: ba81ecf8f5bccbaee4ec5a1613780e0acfd7585b
@@ -30,6 +31,10 @@ env:
   VARIANT: ${{ inputs.variant }}
   # Avrea serves type=gha only when url_v2 points at its cache (its docs).
   GHA_CACHE: type=gha,scope=${{ inputs.cache-key }}${{ inputs.provider == 'Avrea' && ',url_v2=https://cache.avrea.com/' || '' }}
+  # One GHCR repository per pair, so no layer is already there from another
+  # provider's push; the warm push lands in the cold push's repository (as a
+  # real CI pipeline would) and uploads only the layers that changed.
+  IMAGE: ghcr.io/${{ github.repository_owner }}/cachewarm-${{ inputs.cache-key }}
 
 jobs:
   cold:
@@ -72,30 +77,69 @@ jobs:
           test "$(git rev-parse HEAD)" = "$POSTHOG_SHA"
       - name: "phase: buildx setup"
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: "phase: source change"
+        if: env.STAGE == 'warm'
+        working-directory: posthog
+        run: |
+          # A typical commit: one frontend file and one Django file change, so
+          # the frontend bundle, collectstatic and the final layers rebuild
+          # while dependencies and base layers come from the cache.
+          fe=$(git ls-files 'frontend/src/scenes/*.tsx' | sort | head -1)
+          py=posthog/settings/__init__.py
+          echo "// cachewarm $GITHUB_RUN_ID" >> "$fe"
+          echo "# cachewarm $GITHUB_RUN_ID" >> "$py"
+          echo "changed: $fe $py"
       - name: Cache settings
         run: |
           if [ "$STAGE" = cold ]; then
-            echo "CACHE_FROM=" >> "$GITHUB_ENV"; echo "CACHE_TO=$GHA_CACHE,mode=max" >> "$GITHUB_ENV"
+            echo "CACHE_FROM=" >> "$GITHUB_ENV"
           else
-            echo "CACHE_FROM=$GHA_CACHE" >> "$GITHUB_ENV"; echo "CACHE_TO=" >> "$GITHUB_ENV"
+            echo "CACHE_FROM=$GHA_CACHE" >> "$GITHUB_ENV"
           fi
+          echo "TAG=$IMAGE:$STAGE" >> "$GITHUB_ENV"
+      - name: Registry login
+        run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: "phase: docker build"
-        # Cold: no cache-from, so nothing can be imported; the layers are
-        # exported at the end of the step (export time included). Warm: import
-        # only, nothing exported.
+        # Build only: the image stays in the builder. Cold imports nothing;
+        # warm imports the cold job's cache.
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: posthog
+          outputs: type=image,name=${{ env.TAG }},push=false
+          provenance: false
+          sbom: false
+          cache-from: ${{ env.CACHE_FROM }}
+      - name: Build record
+        if: always()
+        run: docker buildx history ls --format json 2>/dev/null | head -1 > "$RUNNER_TEMP/bench/buildx-history.json" || true
+      - name: "phase: registry push"
+        # Same build, every step already in the builder: this measures the
+        # image export and the upload to GHCR.
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: posthog
+          outputs: type=image,name=${{ env.TAG }},push=true
+          provenance: false
+          sbom: false
+      - name: "phase: cache export"
+        # Same build again, exporting every layer to the provider's GitHub
+        # cache backend (mode=max): what a CI job adds to keep the cache warm.
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: posthog
           outputs: type=cacheonly
           provenance: false
           sbom: false
-          cache-from: ${{ env.CACHE_FROM }}
-          cache-to: ${{ env.CACHE_TO }}
+          cache-to: ${{ env.GHA_CACHE }},mode=max
+      - name: Image size
+        if: always()
+        run: |
+          docker buildx imagetools inspect "$TAG" --raw 2>/dev/null | python3 -c "import json,sys
+          m=json.load(sys.stdin); print('layers', len(m.get('layers',[])), 'MiB', sum(l['size'] for l in m.get('layers',[]))//2**20)" || true
       - name: Check cache use
         if: always()
         run: |
-          # BuildKit's own record of the build: total, cached and completed steps.
-          docker buildx history ls --format json 2>/dev/null | head -1 > "$RUNNER_TEMP/bench/buildx-history.json" || true
+          # BuildKit's own record of the build step: total, cached and completed steps.
           python3 - <<'PY'
           import json, os, sys
           p = os.path.join(os.environ["RUNNER_TEMP"], "bench", "buildx-history.json")
@@ -139,6 +183,14 @@ jobs:
             done <<< "$keys"
           done
           echo done
+      - name: Delete registry package
+        if: always() && github.job == 'warm'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsS -X DELETE -H "Authorization: Bearer $GH_TOKEN" \
+            "$GITHUB_API_URL/orgs/$GITHUB_REPOSITORY_OWNER/packages/container/cachewarm-$CACHE_KEY" && echo deleted
       - name: Upload
         if: always() && steps.harness.outcome == 'success'
         uses: ./.harness/.github/actions/bench-finish
