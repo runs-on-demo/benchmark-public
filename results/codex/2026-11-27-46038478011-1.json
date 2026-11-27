@@ -1,0 +1,4962 @@
+{
+  "schemaVersion": 1,
+  "suite": "codex",
+  "workload": {
+    "name": "Rust: OpenAI Codex",
+    "description": "Cold build of openai/codex's Rust workspace (codex-rs: 214 crates, about 1,500 dependencies) at rust-v0.172.0, no cache: checkout, apt dependencies, toolchain, cargo fetch (its own phase: crates plus a git fork of rusty_v8, so mostly network), the V8 prebuilt library from Codex's releases, a debug build of the codex binary, and cargo clippy --tests on the whole workspace except codex-voice-host (it needs GStreamer 1.28, newer than Ubuntu 24.04's), lints as warnings. It needs about 11 GB for target/ and 5.4 GB for ~/.cargo: runners with less free disk or 8 GB of RAM without swap fail it. RunsOn runners ask for an 80 GB root volume (volume=80gb), as in the docker suite. It runs on each provider's 4 vCPU runner only, x64 and arm64.",
+    "repository": "https://github.com/openai/codex",
+    "ref": "3d86e43b075adeba2193ec5c22ac92f55afd82e6",
+    "toolchain": "rust 1.99.1",
+    "fetch": "cargo fetch is timed as its own phase, apart from compilation"
+  },
+  "run": {
+    "id": 46038478011,
+    "attempt": 1,
+    "date": "2026-11-27",
+    "startedAt": "2026-11-27T17:01:38Z",
+    "url": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011",
+    "sha": "789de0da265f760d912a3225e5b296972e861d67",
+    "event": "workflow_dispatch",
+    "repository": "runs-on-demo/benchmark-public"
+  },
+  "selection": {
+    "event": "workflow_dispatch",
+    "source": "default",
+    "origin": {
+      "event": "workflow_dispatch",
+      "source": "default",
+      "runId": 46038478011
+    },
+    "runners": "default",
+    "arch": "all",
+    "iterations": 1,
+    "defaultRunners": 20,
+    "subset": false,
+    "missingDefaultRunners": []
+  },
+  "runners": [
+    {
+      "id": "github-x64",
+      "provider": "GitHub",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubuntu-24.04",
+      "tier": "standard",
+      "storage": "network",
+      "note": "Standard 4 vCPU runner GitHub gives public repositories."
+    },
+    {
+      "id": "github-arm64",
+      "provider": "GitHub",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubuntu-24.04-arm",
+      "tier": "standard",
+      "storage": "network",
+      "note": "Standard 4 vCPU arm64 runner GitHub gives public repositories."
+    },
+    {
+      "id": "runson-m8a-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m8a.xlarge,image=ubuntu26-full-x64,ssh=false,retry=false,env=demo,volume=80gb",
+      "instanceType": "m8a.xlarge",
+      "storage": "ebs",
+      "note": "AMD EPYC Turin general purpose, root on EBS gp3."
+    },
+    {
+      "id": "runson-m9g-arm64",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "runs-on={run_id},family=m9g.xlarge,image=ubuntu26-full-arm64,ssh=false,retry=false,env=demo,volume=80gb",
+      "instanceType": "m9g.xlarge",
+      "storage": "ebs",
+      "note": "Graviton5, root on EBS gp3."
+    },
+    {
+      "id": "blacksmith-x64",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "blacksmith-4vcpu-ubuntu-2404",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "blacksmith-arm64",
+      "provider": "Blacksmith",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "blacksmith-4vcpu-ubuntu-2404-arm",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "namespace-x64",
+      "provider": "Namespace",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "nscloud-ubuntu-24.04-amd64-4x16",
+      "variant": "4x16",
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "namespace-arm64",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "nscloud-ubuntu-24.04-arm64-4x16",
+      "variant": "4x16",
+      "suiteNotes": {
+        "burst": "Jobs started in waves as earlier ones finished: the plan this benchmark account is on caps how many run at once, so this queue measures that cap, not how fast the platform scales."
+      }
+    },
+    {
+      "id": "warpbuild-x64",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "warp-ubuntu-2404-x64-4x",
+      "variant": "4x"
+    },
+    {
+      "id": "warpbuild-arm64",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "warp-ubuntu-2404-arm64-4x",
+      "variant": "4x"
+    },
+    {
+      "id": "ubicloud-x64",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubicloud-standard-4-ubuntu-2404",
+      "tier": "standard",
+      "variant": "standard 4"
+    },
+    {
+      "id": "ubicloud-premium-x64",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubicloud-premium-4-ubuntu-2404",
+      "tier": "premium",
+      "variant": "premium 4"
+    },
+    {
+      "id": "ubicloud-arm64",
+      "provider": "Ubicloud",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "ubicloud-standard-4-arm-ubuntu-2404",
+      "tier": "standard",
+      "variant": "standard 4"
+    },
+    {
+      "id": "avrea-x64",
+      "provider": "Avrea",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "avrea-ubuntu-24.04-4-vcpu",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "avrea-arm64",
+      "provider": "Avrea",
+      "arch": "arm64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "avrea-ubuntu-24.04-arm-4-vcpu",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "starsling-x64",
+      "provider": "StarSling",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "starsling-ubuntu-24.04",
+      "note": "The default StarSling label is a 4 vCPU runner.",
+      "variant": "4 vCPU"
+    },
+    {
+      "id": "sengi-x64",
+      "provider": "Sengi",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "sengi-basic-4-ubuntu-2404",
+      "tier": "basic",
+      "variant": "basic 4"
+    },
+    {
+      "id": "sengi-premium-x64",
+      "provider": "Sengi",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 16,
+      "label": "sengi-premium-4-ubuntu-2404",
+      "tier": "premium",
+      "variant": "premium 4"
+    },
+    {
+      "id": "codebuild-x64",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "codebuild-benchmark-public-{run_id}-{run_attempt}-ubuntu-8.0-medium",
+      "note": "BUILD_GENERAL1_MEDIUM: 4 vCPU / 8 GB.",
+      "variant": "medium",
+      "suiteNotes": {
+        "node": "8 GB is not enough for the opencode typecheck, even with turbo limited to 4 tasks: TypeScript processes are killed out of memory (exit 137). 16 GB passes."
+      },
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    },
+    {
+      "id": "boat-x64",
+      "provider": "boat",
+      "arch": "x64",
+      "vcpu": 4,
+      "ramGiB": 8,
+      "label": "boat",
+      "note": "boat's default size: 4 vCPU / 8 GB, plus 5 GB of swap.",
+      "variant": "default",
+      "suiteSkips": {
+        "docker": "Not run: the PostHog Docker build needs more than 8 GB of memory; it ran out of memory on 8 GB runners."
+      }
+    }
+  ],
+  "results": [
+    {
+      "key": "github-x64--1",
+      "runnerId": "github-x64",
+      "provider": "GitHub",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 3,
+      "jobSeconds": 1497,
+      "workloadSeconds": 1479,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:53Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 11,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 9,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 456,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 490,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 508,
+          "status": "success"
+        }
+      ],
+      "runnerName": "GitHub Actions 1000023401",
+      "runnerGroup": "GitHub Actions",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921936",
+      "host": {
+        "collectedAt": "2026-11-27T17:01:58+00:00",
+        "arch": "x86_64",
+        "kernel": "7.0.0-1020-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "AMD EPYC 9V74 80-Core Processor",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 2,
+          "maxMHz": null,
+          "virtualization": "microsoft",
+          "hypervisor": "Microsoft"
+        },
+        "memoryGiB": 15.61,
+        "memory": {
+          "swapGiB": 3.0,
+          "availableGiB": 14.69,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 3.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "Microsoft Corporation",
+        "product": "Virtual Machine",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 84.4
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 84.4
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 84.4
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 84.4
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": "MSFT NVMe Accelerator v1.0",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                },
+                {
+                  "name": "nvme0n1p16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS8075 Microsoft Corporation",
+          "city": "Boydton",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "GitHub Actions 1000023401",
+          "environment": "github-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20261122.23.1"
+        }
+      }
+    },
+    {
+      "key": "github-arm64--1",
+      "runnerId": "github-arm64",
+      "provider": "GitHub",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 6,
+      "jobSeconds": 2054,
+      "workloadSeconds": 2041,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:56Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 5,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 16,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 438,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 1154,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 420,
+          "status": "success"
+        }
+      ],
+      "runnerName": "GitHub Actions 1000023402",
+      "runnerGroup": "GitHub Actions",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921966",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:02+00:00",
+        "arch": "aarch64",
+        "kernel": "7.0.0-1020-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "Neoverse-N2",
+          "vendor": "ARM",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "microsoft",
+          "hypervisor": null
+        },
+        "memoryGiB": 15.57,
+        "memory": {
+          "swapGiB": 3.0,
+          "availableGiB": 14.4,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 3.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "Microsoft Corporation",
+        "product": "Virtual Machine",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/sda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 105.5
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/sda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 105.5
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/sda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 105.5
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/sda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 105.5
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "sda",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": "Virtual Disk",
+              "rotational": true,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "sda1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": null,
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "sda15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": true,
+                  "transport": null,
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                },
+                {
+                  "name": "sda16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": true,
+                  "transport": null,
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS8075 Microsoft Corporation",
+          "city": "Cheyenne",
+          "region": "Wyoming",
+          "country": "US"
+        },
+        "runner": {
+          "name": "GitHub Actions 1000023402",
+          "environment": "github-hosted",
+          "imageOS": "ubuntu24-arm64",
+          "imageVersion": "20261122.193.1"
+        }
+      }
+    },
+    {
+      "key": "runson-m8a-x64--1",
+      "runnerId": "runson-m8a-x64",
+      "provider": "RunsOn",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 14,
+      "jobSeconds": 945,
+      "workloadSeconds": 912,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:04Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 10,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 324,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 286,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 282,
+          "status": "success"
+        }
+      ],
+      "runnerName": "runs-on--i-0a9c4606b21d7dffa--d93d87a4-9",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921975",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:15+00:00",
+        "arch": "x86_64",
+        "kernel": "7.0.0-1018-aws",
+        "os": "Ubuntu 26.04.1 LTS",
+        "cpu": {
+          "model": "AMD EPYC 9R45",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 15.29,
+        "memory": {
+          "swapGiB": 15.29,
+          "availableGiB": 14.32,
+          "swapDevices": [
+            {
+              "kind": "zram",
+              "sizeGiB": 15.29
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 100,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "m8a.xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 76.4,
+            "freeGiB": 59.8
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 76.4,
+            "freeGiB": 59.8
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 76.4,
+            "freeGiB": 59.8
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 76.4,
+            "freeGiB": 59.8
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": 15.3,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": "swap",
+              "mountpoint": "[SWAP]"
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 80.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 78.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p13",
+                  "type": "part",
+                  "sizeGiB": 1.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                },
+                {
+                  "name": "nvme0n1p14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "m8a.xlarge",
+          "lifecycle": "spot",
+          "amiId": "ami-0b077b5c926b29f88",
+          "availabilityZone": "us-east-1a",
+          "region": "us-east-1"
+        },
+        "runsOn": {
+          "version": "v3.7.0-rc.4",
+          "stackName": "runs-on-demo-v3",
+          "amiId": "ami-0b077b5c926b29f88",
+          "instanceType": "m8a.xlarge",
+          "lifecycle": "spot",
+          "region": "us-east-1",
+          "availabilityZone": "us-east-1a",
+          "agentArch": "x64"
+        },
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "runs-on--i-0a9c4606b21d7dffa--d93d87a4-9",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu26",
+          "imageVersion": "20261125104817"
+        }
+      },
+      "cost": {
+        "usd": 0.028312,
+        "ec2Usd": 0.021972,
+        "ebsUsd": 0.00634,
+        "lifecycle": "spot",
+        "interrupted": false,
+        "source": "runs-on-control-plane",
+        "billedSeconds": 957.6,
+        "ec2HourlyUsd": 0.0826,
+        "ebsHourlyUsd": 0.023836
+      }
+    },
+    {
+      "key": "runson-m9g-arm64--1",
+      "runnerId": "runson-m9g-arm64",
+      "provider": "RunsOn",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 14,
+      "jobSeconds": 1164,
+      "workloadSeconds": 1142,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:04Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 9,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 347,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 514,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 263,
+          "status": "success"
+        }
+      ],
+      "runnerName": "runs-on--i-0101f1e176b364230--fd4319a1-c",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639922002",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:16+00:00",
+        "arch": "aarch64",
+        "kernel": "7.0.0-1018-aws",
+        "os": "Ubuntu 26.04.1 LTS",
+        "cpu": {
+          "model": "Neoverse-V3",
+          "vendor": "ARM",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": null
+        },
+        "memoryGiB": 15.27,
+        "memory": {
+          "swapGiB": 15.27,
+          "availableGiB": 14.14,
+          "swapDevices": [
+            {
+              "kind": "zram",
+              "sizeGiB": 15.27
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 100,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "m9g.xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 76.4,
+            "freeGiB": 61.0
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 76.4,
+            "freeGiB": 61.0
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 76.4,
+            "freeGiB": 61.0
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 76.4,
+            "freeGiB": 61.0
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": 15.3,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": "swap",
+              "mountpoint": "[SWAP]"
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 80.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 79.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p13",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "m9g.xlarge",
+          "lifecycle": "spot",
+          "amiId": "ami-048cae5cec0305902",
+          "availabilityZone": "us-east-1c",
+          "region": "us-east-1"
+        },
+        "runsOn": {
+          "version": "v3.7.0-rc.4",
+          "stackName": "runs-on-demo-v3",
+          "amiId": "ami-048cae5cec0305902",
+          "instanceType": "m9g.xlarge",
+          "lifecycle": "spot",
+          "region": "us-east-1",
+          "availabilityZone": "us-east-1c",
+          "agentArch": "arm64"
+        },
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "runs-on--i-0101f1e176b364230--fd4319a1-c",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu26",
+          "imageVersion": "20261125104811"
+        }
+      },
+      "cost": {
+        "usd": 0.040044,
+        "ec2Usd": 0.032254,
+        "ebsUsd": 0.007789,
+        "lifecycle": "spot",
+        "interrupted": false,
+        "source": "runs-on-control-plane",
+        "billedSeconds": 1176.5,
+        "ec2HourlyUsd": 0.0987,
+        "ebsHourlyUsd": 0.023836
+      }
+    },
+    {
+      "key": "blacksmith-x64--1",
+      "runnerId": "blacksmith-x64",
+      "provider": "Blacksmith",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 7,
+      "jobSeconds": 901,
+      "workloadSeconds": 889,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:57Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 21,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 342,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 276,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 238,
+          "status": "success"
+        }
+      ],
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-4bkjf2qszoiyzpdj",
+      "runnerGroup": "blacksmith scale sets - blacksmith-4vcpu-ubuntu-2404",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639922087",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:02+00:00",
+        "arch": "x86_64",
+        "kernel": "6.6.141",
+        "os": "Ubuntu 24.04.4 LTS",
+        "cpu": {
+          "model": "AMD EPYC",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "kvm",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 15.42,
+        "memory": {
+          "swapGiB": 11.0,
+          "availableGiB": 14.77,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 11.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 1
+        },
+        "manufacturer": "",
+        "product": "",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,noinit_itable,data=writeback",
+            "sizeGiB": 149.6,
+            "freeGiB": 81.1
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,noinit_itable,data=writeback",
+            "sizeGiB": 149.6,
+            "freeGiB": 81.1
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,noinit_itable,data=writeback",
+            "sizeGiB": 149.6,
+            "freeGiB": 81.1
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vdb",
+            "target": "/var/lib/docker",
+            "fstype": "ext4",
+            "options": "rw,relatime,noinit_itable",
+            "sizeGiB": 589.5,
+            "freeGiB": 587.7
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "nbd0",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd1",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd2",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd3",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd4",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd5",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd6",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd7",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 153.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "ext4",
+              "mountpoint": "/"
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 600.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "ext4",
+              "mountpoint": "/var/lib/docker"
+            },
+            {
+              "name": "vdc",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdd",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vde",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdf",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdg",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdh",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdi",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdj",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdk",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd8",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd9",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd10",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd11",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd12",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd13",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd14",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd15",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS20454 SECURED SERVERS LLC",
+          "city": "Phoenix",
+          "region": "Arizona",
+          "country": "US"
+        },
+        "runner": {
+          "name": "blacksmith-4vcpu-ubuntu-2404-4bkjf2qszoiyzpdj",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20260819_203438"
+        }
+      }
+    },
+    {
+      "key": "blacksmith-arm64--1",
+      "runnerId": "blacksmith-arm64",
+      "provider": "Blacksmith",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 10,
+      "jobSeconds": 2414,
+      "workloadSeconds": 2398,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:00Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 12,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 8,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 536,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 1287,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 551,
+          "status": "success"
+        }
+      ],
+      "runnerName": "blacksmith-4vcpu-ubuntu-2404-arm-uxqffjvs5joqlnbo",
+      "runnerGroup": "blacksmith scale sets - blacksmith-4vcpu-ubuntu-2404-arm",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921943",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:07+00:00",
+        "arch": "aarch64",
+        "kernel": "6.6.141",
+        "os": "Ubuntu 24.04.4 LTS",
+        "cpu": {
+          "model": "Ampere-1a",
+          "vendor": "Ampere",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": null,
+          "hypervisor": null
+        },
+        "memoryGiB": 11.66,
+        "memory": {
+          "swapGiB": 11.0,
+          "availableGiB": 11.1,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 11.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 1
+        },
+        "manufacturer": "",
+        "product": "",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,noinit_itable,data=writeback",
+            "sizeGiB": 123.5,
+            "freeGiB": 63.4
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,noinit_itable,data=writeback",
+            "sizeGiB": 123.5,
+            "freeGiB": 63.4
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,noinit_itable,data=writeback",
+            "sizeGiB": 123.5,
+            "freeGiB": 63.4
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vdb",
+            "target": "/var/lib/docker",
+            "fstype": "ext4",
+            "options": "rw,relatime,noinit_itable",
+            "sizeGiB": 589.5,
+            "freeGiB": 587.4
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "nbd0",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd1",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd2",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd3",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd4",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd5",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd6",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd7",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 126.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "ext4",
+              "mountpoint": "/"
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 600.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "ext4",
+              "mountpoint": "/var/lib/docker"
+            },
+            {
+              "name": "vdc",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdd",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vde",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdf",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdg",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdh",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdi",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdj",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdk",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd8",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd9",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd10",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd11",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd12",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd13",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd14",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd15",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS20454 SECURED SERVERS LLC",
+          "city": "Phoenix",
+          "region": "Arizona",
+          "country": "US"
+        },
+        "runner": {
+          "name": "blacksmith-4vcpu-ubuntu-2404-arm-uxqffjvs5joqlnbo",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20260819_202427"
+        }
+      }
+    },
+    {
+      "key": "namespace-x64--1",
+      "runnerId": "namespace-x64",
+      "provider": "Namespace",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 7,
+      "jobSeconds": 768,
+      "workloadSeconds": 760,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:57Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 5,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 6,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 279,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 0,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 233,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 235,
+          "status": "success"
+        }
+      ],
+      "runnerName": "nsc-runner-17458mobqvlta",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921925",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:01+00:00",
+        "arch": "x86_64",
+        "kernel": "7.1.4",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "AMD EPYC",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 2,
+          "maxMHz": null,
+          "virtualization": "docker",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 15.68,
+        "memory": {
+          "swapGiB": 0.0,
+          "availableGiB": 14.99,
+          "swapDevices": [],
+          "overcommit": 0,
+          "swappiness": 60,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": null,
+        "product": null,
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "overlay",
+            "target": "/",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/disk/extra0,upperdir=/namespace/containers/rootfs/f62t15d87p498/fs,workdir=/namespace/containers/rootfs/f62t15d87p498/work,uuid=on",
+            "sizeGiB": 94.5,
+            "freeGiB": 93.7
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "overlay",
+            "target": "/",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/disk/extra0,upperdir=/namespace/containers/rootfs/f62t15d87p498/fs,workdir=/namespace/containers/rootfs/f62t15d87p498/work,uuid=on",
+            "sizeGiB": 94.5,
+            "freeGiB": 93.7
+          },
+          "root": {
+            "path": "/",
+            "source": "overlay",
+            "target": "/",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/disk/extra0,upperdir=/namespace/containers/rootfs/f62t15d87p498/fs,workdir=/namespace/containers/rootfs/f62t15d87p498/work,uuid=on",
+            "sizeGiB": 94.5,
+            "freeGiB": 93.7
+          },
+          "docker": null,
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "nbd0",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd1",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd2",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd3",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd4",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd5",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd6",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd7",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 96.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/etc/hostname"
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.7,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/vendor/docker"
+            },
+            {
+              "name": "vdc",
+              "type": "disk",
+              "sizeGiB": 0.5,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdd",
+              "type": "disk",
+              "sizeGiB": 0.1,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vde",
+              "type": "disk",
+              "sizeGiB": 0.2,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/nsc/bin"
+            },
+            {
+              "name": "vdf",
+              "type": "disk",
+              "sizeGiB": 0.9,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/nsc/powertoys"
+            },
+            {
+              "name": "vdg",
+              "type": "disk",
+              "sizeGiB": 0.5,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdh",
+              "type": "disk",
+              "sizeGiB": 1.3,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdi",
+              "type": "disk",
+              "sizeGiB": 31.3,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd8",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd9",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd10",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd11",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd12",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd13",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd14",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd15",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS401483 Namespace Labs",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "nsc-runner-17458mobqvlta",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": null
+        }
+      }
+    },
+    {
+      "key": "namespace-arm64--1",
+      "runnerId": "namespace-arm64",
+      "provider": "Namespace",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 14,
+      "jobSeconds": 3641,
+      "workloadSeconds": 3624,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:04Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 15,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 10,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 626,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 0,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 1919,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 1050,
+          "status": "success"
+        }
+      ],
+      "runnerName": "nsc-runner-l7s5ijaudhbo2",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921950",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:11+00:00",
+        "arch": "aarch64",
+        "kernel": "7.1.4",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "Ampere-1a",
+          "vendor": "Ampere",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "docker",
+          "hypervisor": null
+        },
+        "memoryGiB": 15.68,
+        "memory": {
+          "swapGiB": 0.0,
+          "availableGiB": 15.02,
+          "swapDevices": [],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": null,
+        "product": null,
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "overlay",
+            "target": "/",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/disk/extra0,upperdir=/namespace/containers/rootfs/t7artv419mf6e/fs,workdir=/namespace/containers/rootfs/t7artv419mf6e/work,uuid=on",
+            "sizeGiB": 94.4,
+            "freeGiB": 93.7
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "overlay",
+            "target": "/",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/disk/extra0,upperdir=/namespace/containers/rootfs/t7artv419mf6e/fs,workdir=/namespace/containers/rootfs/t7artv419mf6e/work,uuid=on",
+            "sizeGiB": 94.4,
+            "freeGiB": 93.7
+          },
+          "root": {
+            "path": "/",
+            "source": "overlay",
+            "target": "/",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/disk/extra0,upperdir=/namespace/containers/rootfs/t7artv419mf6e/fs,workdir=/namespace/containers/rootfs/t7artv419mf6e/work,uuid=on",
+            "sizeGiB": 94.4,
+            "freeGiB": 93.7
+          },
+          "docker": null,
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "nbd0",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd1",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd2",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd3",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd4",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd5",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd6",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd7",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 96.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/etc/hostname"
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.7,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/vendor/docker"
+            },
+            {
+              "name": "vdc",
+              "type": "disk",
+              "sizeGiB": 0.4,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdd",
+              "type": "disk",
+              "sizeGiB": 0.1,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vde",
+              "type": "disk",
+              "sizeGiB": 0.2,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/nsc/bin"
+            },
+            {
+              "name": "vdf",
+              "type": "disk",
+              "sizeGiB": 0.9,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/nsc/powertoys"
+            },
+            {
+              "name": "vdg",
+              "type": "disk",
+              "sizeGiB": 0.4,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdh",
+              "type": "disk",
+              "sizeGiB": 0.8,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vdi",
+              "type": "disk",
+              "sizeGiB": 30.1,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd8",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd9",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd10",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd11",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd12",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd13",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd14",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nbd15",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS401483 Namespace Labs",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "nsc-runner-l7s5ijaudhbo2",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": null
+        }
+      }
+    },
+    {
+      "key": "warpbuild-x64--1",
+      "runnerId": "warpbuild-x64",
+      "provider": "Warpbuild",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 9,
+      "jobSeconds": 1046,
+      "workloadSeconds": 1036,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:59Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 6,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 331,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 0,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 324,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 366,
+          "status": "success"
+        }
+      ],
+      "runnerName": "warp-4x-x64-wskaksgxrbwpitff",
+      "runnerGroup": "default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921947",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:04+00:00",
+        "arch": "x86_64",
+        "kernel": "7.0.0-1017-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "kvm",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 15.61,
+        "memory": {
+          "swapGiB": 4.0,
+          "availableGiB": 14.83,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 4.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "Cloud Hypervisor",
+        "product": "cloud-hypervisor",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime",
+            "sizeGiB": 246.9,
+            "freeGiB": 188.3
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime",
+            "sizeGiB": 246.9,
+            "freeGiB": 188.3
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime",
+            "sizeGiB": 246.9,
+            "freeGiB": 188.3
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime",
+            "sizeGiB": 246.9,
+            "freeGiB": 188.3
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 256.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "vda1",
+                  "type": "part",
+                  "sizeGiB": 255.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "vda14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "vda15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "vfat",
+                  "mountpoint": null
+                },
+                {
+                  "name": "vda16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": null
+                }
+              ]
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "iso9660",
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS398418 WarpBuild",
+          "city": "Chicago",
+          "region": "Illinois",
+          "country": "US"
+        },
+        "runner": {
+          "name": "warp-4x-x64-wskaksgxrbwpitff",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20261024.01"
+        }
+      }
+    },
+    {
+      "key": "warpbuild-arm64--1",
+      "runnerId": "warpbuild-arm64",
+      "provider": "Warpbuild",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 6,
+      "jobSeconds": 1799,
+      "workloadSeconds": 1784,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:56Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 20,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 440,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 907,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 407,
+          "status": "success"
+        }
+      ],
+      "runnerName": "warp-4x-arm64-wsdhk8l8d6wi3c0g",
+      "runnerGroup": "default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639922046",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:05+00:00",
+        "arch": "aarch64",
+        "kernel": "7.0.0-1014-aws",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "Neoverse-V2",
+          "vendor": "ARM",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "amazon",
+          "hypervisor": null
+        },
+        "memoryGiB": 15.3,
+        "memory": {
+          "swapGiB": 4.0,
+          "availableGiB": 14.55,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 4.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "Amazon EC2",
+        "product": "m8g.xlarge",
+        "storage": {
+          "workspace": {
+            "path": "/runner/_work/benchmark-public/benchmark-public",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 106.3
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 106.3
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 106.3
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/nvme0n1p1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 106.3
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "nvme0n1p15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                },
+                {
+                  "name": "nvme0n1p16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": {
+          "instanceType": "m8g.xlarge",
+          "lifecycle": "on-demand",
+          "amiId": "ami-09955c89d4a12e24b",
+          "availabilityZone": "us-east-1d",
+          "region": "us-east-1"
+        },
+        "runsOn": null,
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "warp-4x-arm64-wsdhk8l8d6wi3c0g",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24-arm64",
+          "imageVersion": "20261024.01"
+        }
+      }
+    },
+    {
+      "key": "ubicloud-x64--1",
+      "runnerId": "ubicloud-x64",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 20,
+      "jobSeconds": 1455,
+      "workloadSeconds": 1439,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:10Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 20,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 13,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 459,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 453,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 490,
+          "status": "success"
+        }
+      ],
+      "runnerName": "gr9tmjkh71xt4h5pmnwsmchea8",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921888",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:15+00:00",
+        "arch": "x86_64",
+        "kernel": "6.14.0-1017-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "AMD EPYC 9454P 48-Core Processor",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 2,
+          "maxMHz": null,
+          "virtualization": "kvm",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 15.62,
+        "memory": {
+          "swapGiB": 4.0,
+          "availableGiB": 14.9,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 4.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "Cloud Hypervisor",
+        "product": "cloud-hypervisor",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 83.0
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 83.0
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 83.0
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 83.0
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "vda1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "vda14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "vda15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                },
+                {
+                  "name": "vda16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                }
+              ]
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "vfat",
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS24940 Hetzner Online GmbH",
+          "city": "Falkenstein",
+          "region": "Saxony",
+          "country": "DE"
+        },
+        "runner": {
+          "name": "gr9tmjkh71xt4h5pmnwsmchea8",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20261123.1.0"
+        }
+      }
+    },
+    {
+      "key": "ubicloud-premium-x64--1",
+      "runnerId": "ubicloud-premium-x64",
+      "provider": "Ubicloud",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 13,
+      "jobSeconds": 1116,
+      "workloadSeconds": 1101,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:03Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 9,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 6,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 354,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 368,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 359,
+          "status": "success"
+        }
+      ],
+      "runnerName": "grds8bh7v53y4jn08g6323fftp",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921976",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:09+00:00",
+        "arch": "x86_64",
+        "kernel": "6.14.0-1017-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "AMD EPYC 4565P 16-Core Processor",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 2,
+          "maxMHz": null,
+          "virtualization": "kvm",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 15.62,
+        "memory": {
+          "swapGiB": 4.0,
+          "availableGiB": 14.86,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 4.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "Cloud Hypervisor",
+        "product": "cloud-hypervisor",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 83.8
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 83.8
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 83.8
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 83.8
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "vda1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "vda14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "vda15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                },
+                {
+                  "name": "vda16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                }
+              ]
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "vfat",
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS60439 SERVERNET INTERNET LIMITED",
+          "city": "Amsterdam",
+          "region": "North Holland",
+          "country": "NL"
+        },
+        "runner": {
+          "name": "grds8bh7v53y4jn08g6323fftp",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20261105.1.0"
+        }
+      }
+    },
+    {
+      "key": "ubicloud-arm64--1",
+      "runnerId": "ubicloud-arm64",
+      "provider": "Ubicloud",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 21,
+      "jobSeconds": 3011,
+      "workloadSeconds": 2988,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:11Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 23,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 13,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 652,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 1626,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 669,
+          "status": "success"
+        }
+      ],
+      "runnerName": "grqvb30h3kjj6j6m4pwxycczm5",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921964",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:20+00:00",
+        "arch": "aarch64",
+        "kernel": "7.0.0-1020-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "Neoverse-N1",
+          "vendor": "ARM",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": null,
+          "hypervisor": null
+        },
+        "memoryGiB": 11.64,
+        "memory": {
+          "swapGiB": 4.0,
+          "availableGiB": 11.02,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 4.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": null,
+        "product": null,
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 104.1
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 104.1
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 104.1
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback",
+            "sizeGiB": 144.3,
+            "freeGiB": 104.1
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "vda1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "vda15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                },
+                {
+                  "name": "vda16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                }
+              ]
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "vfat",
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS24940 Hetzner Online GmbH",
+          "city": "Falkenstein",
+          "region": "Saxony",
+          "country": "DE"
+        },
+        "runner": {
+          "name": "grqvb30h3kjj6j6m4pwxycczm5",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24-arm64",
+          "imageVersion": "20261123.1.0"
+        }
+      }
+    },
+    {
+      "key": "avrea-x64--1",
+      "runnerId": "avrea-x64",
+      "provider": "Avrea",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 10,
+      "jobSeconds": 746,
+      "workloadSeconds": 735,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:00Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 6,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 306,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 207,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 207,
+          "status": "success"
+        }
+      ],
+      "runnerName": "avrea-exe-01a21df4d5447635827252a47c1e1d93",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639922053",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:05+00:00",
+        "arch": "x86_64",
+        "kernel": "7.3.6-avrea",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "AMD EPYC 4585PX 16-Core Processor",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "kvm",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 14.7,
+        "memory": {
+          "swapGiB": 3.0,
+          "availableGiB": 13.85,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 3.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 10,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "Cloud Hypervisor",
+        "product": "cloud-hypervisor",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,nobarrier,errors=remount-ro,commit=30",
+            "sizeGiB": 145.2,
+            "freeGiB": 86.6
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,nobarrier,errors=remount-ro,commit=30",
+            "sizeGiB": 145.2,
+            "freeGiB": 86.6
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,nobarrier,errors=remount-ro,commit=30",
+            "sizeGiB": 145.2,
+            "freeGiB": 86.6
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vda",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,nobarrier,errors=remount-ro,commit=30",
+            "sizeGiB": 145.2,
+            "freeGiB": 86.6
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "nullb0",
+              "type": "disk",
+              "sizeGiB": 250.0,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "ext4",
+              "mountpoint": "/"
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.1,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "ext4",
+              "mountpoint": "/run/avrea-tools/03558dfb981a7b8df237165685efa92f016beff800bc27ee8999d9b98568d855"
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS16276 OVH SAS",
+          "city": "Roubaix",
+          "region": "Hauts-de-France",
+          "country": "FR"
+        },
+        "runner": {
+          "name": "avrea-exe-01a21df4d5447635827252a47c1e1d93",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20261125.1537.rim-01a2135aafc57116afdaa186670a019e"
+        }
+      }
+    },
+    {
+      "key": "avrea-arm64--1",
+      "runnerId": "avrea-arm64",
+      "provider": "Avrea",
+      "arch": "arm64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 17,
+      "jobSeconds": 1127,
+      "workloadSeconds": 1114,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:07Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 8,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 453,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 451,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 195,
+          "status": "success"
+        }
+      ],
+      "runnerName": "avrea-exe-01a21df4d5447635827252a371685036",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639922000",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:12+00:00",
+        "arch": "aarch64",
+        "kernel": "7.3.6-avrea",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "-",
+          "vendor": "Apple",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "vm-other",
+          "hypervisor": null
+        },
+        "memoryGiB": 14.68,
+        "memory": {
+          "swapGiB": 3.0,
+          "availableGiB": 14.09,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 3.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 10,
+          "zram": [
+            "zram0"
+          ]
+        },
+        "manufacturer": "",
+        "product": "",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/_work/benchmark-public/benchmark-public",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,nobarrier,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 88.6
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,nobarrier,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 88.6
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,nobarrier,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 88.6
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,nobarrier,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 88.6
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "nullb0",
+              "type": "disk",
+              "sizeGiB": 250.0,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "zram0",
+              "type": "disk",
+              "sizeGiB": null,
+              "model": null,
+              "rotational": false,
+              "transport": null,
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "vda1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "vda15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "vfat",
+                  "mountpoint": null
+                },
+                {
+                  "name": "vda16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": null
+                }
+              ]
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "iso9660",
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS209378 Inios Oy",
+          "city": "Helsinki",
+          "region": "Uusimaa",
+          "country": "FI"
+        },
+        "runner": {
+          "name": "avrea-exe-01a21df4d5447635827252a371685036",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20261125.1537.rim-01a2135ab02a7765bff406e4a3bedf24"
+        }
+      }
+    },
+    {
+      "key": "starsling-x64--1",
+      "runnerId": "starsling-x64",
+      "provider": "StarSling",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "failure",
+      "failedAt": "cargo clippy",
+      "queueSeconds": 9,
+      "jobSeconds": 663,
+      "workloadSeconds": null,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:59Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 8,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 343,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 0,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 235,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 59,
+          "status": "failure"
+        }
+      ],
+      "runnerName": "starsling-z-22b2bcaf05994195ab2b0d0336263d6e",
+      "runnerGroup": "default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921984",
+      "host": null,
+      "annotations": {
+        "errors": [
+          "No space left on device : '/home/runner/_diag/Worker_20261127-170159-utc.log'",
+          "No space left on device : '/home/runner/_diag/pages/55de0b87-11dd-4317-b7a9-f9174d3940fa_f26c327c-2482-5f91-a733-149359787095_1.log'"
+        ]
+      },
+      "logTail": [
+        "   Compiling serial_test_derive v3.3.1",
+        "    Checking scc v2.4.0",
+        "    Checking assert_matches v1.5.0",
+        "    Checking linkify v0.11.0",
+        "    Checking codex-user-verification v0.172.0 (/home/runner/_work/benchmark-public/benchmark-public/work/codex-rs/user-verification)",
+        "    Checking codex-aws-auth v0.172.0 (/home/runner/_work/benchmark-public/benchmark-public/work/codex-rs/aws-auth)",
+        "    Checking codex-utils-json-to-toml v0.172.0 (/home/runner/_work/benchmark-public/benchmark-public/work/codex-rs/utils/json-to-toml)",
+        "   Compiling async-stream-impl v0.3.6",
+        "    Checking unicode-width v0.2.1",
+        "    Checking serial_test v3.3.1",
+        "    Checking gimli v0.32.3",
+        "    Checking async-stream v0.3.6",
+        "    Checking object v0.37.3",
+        "    Checking castaway v0.2.4",
+        "   Compiling darling_core v0.23.0",
+        "    Checking addr2line v0.25.1",
+        "    Checking tracing-error v0.2.1",
+        "    Checking rustc-demangle v0.1.27",
+        "    Checking color-spantrace v0.3.0",
+        "    Checking compact_str v0.9.1",
+        "    Checking backtrace v0.3.76",
+        "    Checking eyre v0.6.12",
+        "   Compiling darling_macro v0.23.0",
+        "    Checking unicode-truncate v2.0.1",
+        "    Checking strum v0.28.0",
+        "    Checking kasuari v0.4.12",
+        "   Compiling darling v0.23.0",
+        "    Checking color-eyre v0.6.5",
+        "    Checking codex-cloud-client v0.172.0 (/home/runner/_work/benchmark-public/benchmark-public/work/codex-rs/cloud-client)",
+        "    Checking ratatui-core v0.1.2",
+        "   Compiling wayland-backend v0.3.12",
+        "   Compiling instability v0.3.11",
+        "    Checking wayland-sys v0.31.8",
+        "    Checking signal-hook-mio v0.2.5",
+        "   Compiling wayland-scanner v0.31.11",
+        "   Compiling onig_sys v69.9.1",
+        "    Checking line-clipping v0.3.7",
+        "    Checking ratatui-widgets v0.3.2",
+        "error: error writing dependencies to `/home/runner/_work/benchmark-public/benchmark-public/work/codex-rs/target/debug/deps/ratatui_widgets-c0f1e3848f0cd93e.d`: No space left on device (os error 28)",
+        "##[error]No space left on device : '/home/runner/_diag/pages/55de0b87-11dd-4317-b7a9-f9174d3940fa_f26c327c-2482-5f91-a733-149359787095_1.log'"
+      ]
+    },
+    {
+      "key": "sengi-x64--1",
+      "runnerId": "sengi-x64",
+      "provider": "Sengi",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 10,
+      "jobSeconds": 1964,
+      "workloadSeconds": 1943,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:00Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 20,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 11,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 504,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 690,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 713,
+          "status": "success"
+        }
+      ],
+      "runnerName": "grk1d43pat4y4q7z9azhcz2neb",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639922138",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:07+00:00",
+        "arch": "x86_64",
+        "kernel": "6.14.0-1017-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "AMD Ryzen 9 7950X3D 16-Core Processor",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 2,
+          "maxMHz": null,
+          "virtualization": "kvm",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 15.62,
+        "memory": {
+          "swapGiB": 4.0,
+          "availableGiB": 14.87,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 4.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "Cloud Hypervisor",
+        "product": "cloud-hypervisor",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 87.8
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 87.8
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 87.8
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 87.8
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "vda1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "vda14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "vda15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                },
+                {
+                  "name": "vda16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                }
+              ]
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "vfat",
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS24940 Hetzner Online GmbH",
+          "city": "Helsinki",
+          "region": "Uusimaa",
+          "country": "FI"
+        },
+        "runner": {
+          "name": "grk1d43pat4y4q7z9azhcz2neb",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20260930.1.0"
+        }
+      }
+    },
+    {
+      "key": "sengi-premium-x64--1",
+      "runnerId": "sengi-premium-x64",
+      "provider": "Sengi",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 9,
+      "jobSeconds": 987,
+      "workloadSeconds": 977,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:59Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 4,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 12,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 341,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 0,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 282,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 331,
+          "status": "success"
+        }
+      ],
+      "runnerName": "grfgymddnee60m5d6d48wywdwv",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639921908",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:02+00:00",
+        "arch": "x86_64",
+        "kernel": "6.14.0-1017-azure",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "AMD EPYC 9455 48-Core Processor",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 2,
+          "maxMHz": null,
+          "virtualization": "kvm",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 15.62,
+        "memory": {
+          "swapGiB": 4.0,
+          "availableGiB": 14.83,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 4.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "Cloud Hypervisor",
+        "product": "cloud-hypervisor",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 87.8
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 87.8
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 87.8
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,discard,errors=remount-ro,commit=30",
+            "sizeGiB": 144.3,
+            "freeGiB": 87.8
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 150.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "vda1",
+                  "type": "part",
+                  "sizeGiB": 149.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "vda14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "vda15",
+                  "type": "part",
+                  "sizeGiB": 0.1,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                },
+                {
+                  "name": "vda16",
+                  "type": "part",
+                  "sizeGiB": 0.9,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/boot"
+                }
+              ]
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "vfat",
+              "mountpoint": null
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS16276 OVH SAS",
+          "city": "Beauharnois",
+          "region": "Quebec",
+          "country": "CA"
+        },
+        "runner": {
+          "name": "grfgymddnee60m5d6d48wywdwv",
+          "environment": "self-hosted",
+          "imageOS": "ubuntu24",
+          "imageVersion": "20260930.1.0"
+        }
+      }
+    },
+    {
+      "key": "codebuild-x64--1",
+      "runnerId": "codebuild-x64",
+      "provider": "AWS CodeBuild",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "failure",
+      "failedAt": "cargo clippy",
+      "queueSeconds": 21,
+      "jobSeconds": 1638,
+      "workloadSeconds": null,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:02:11Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 29,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 6,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 547,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 1,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 550,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 481,
+          "status": "failure"
+        }
+      ],
+      "runnerName": "f16f7cd5-45b2-485f-8880-ba07765e1642",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639922014",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:23+00:00",
+        "arch": "x86_64",
+        "kernel": "4.14.355-287.758.amzn2.x86_64",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": {
+          "model": "Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz",
+          "vendor": "GenuineIntel",
+          "logicalCpus": 4,
+          "threadsPerCore": 2,
+          "maxMHz": null,
+          "virtualization": "docker",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 7.63,
+        "memory": {
+          "swapGiB": 0.0,
+          "availableGiB": 6.75,
+          "swapDevices": [],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": null,
+        "product": null,
+        "storage": {
+          "workspace": {
+            "path": "/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public",
+            "source": "/dev/nvme0n1p1[/codebuild/output]",
+            "target": "/codebuild/output",
+            "fstype": "xfs",
+            "options": "rw,noatime,attr2,inode64,noquota",
+            "sizeGiB": 317.0,
+            "freeGiB": 159.8
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "overlay",
+            "target": "/",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/var/lib/docker/overlay2/l/V7PRPBMNIJLKRBQZ33542RVD7C:/var/lib/docker/overlay2/l/GWN3J65244RKHSHM5YMQN7K4KW:/var/lib/docker/overlay2/l/MVZOFBHTCZVZEITCK3AHACME7R:/var/lib/docker/overlay2/l/ZG4HL7L5VUU6W2FO4OMS26ABAZ:/var/lib/docker/overlay2/l/Z4B4I5TDVXT5BIF6ZSMWMMIXZM:/var/lib/docker/overlay2/l/R3AECVDP6KWMKOZIN7CWDKF6TM:/var/lib/docker/overlay2/l/6LYWJSNHRAZTNMCWEQW4J7VKBQ:/var/lib/docker/overlay2/l/22DNX35MUTIHXVS46IW646YR7L:/var/lib/docker/overlay2/l/4NGJI5OE57S2YQWVN5TS7EURAH:/var/lib/docker/overlay2/l/OHYXVB2ZEEK7EHI2ELT2S6NXSK:/var/lib/docker/overlay2/l/DDKOC6YY2MUL4FHNMQTKPDSD7Z:/var/lib/docker/overlay2/l/G5FJ325MDUTZKMWFAZNZUF26RS:/var/lib/docker/overlay2/l/NTSUPX73P7BV7MCST7M22VBMBM:/var/lib/docker/overlay2/l/A64SDCYD2VAOLMOH2XNIP3VXHT:/var/lib/docker/overlay2/l/I2E45EZI2NFCCA5Z7DGOTVZIJS:/var/lib/docker/overlay2/l/BOHOE35NXX5INF2E5Q6DAWZSFC:/var/lib/docker/overlay2/l/7GTQWL2R62PJ7CWR3WGO3CISF6:/var/lib/docker/overlay2/l/XP4UATKMIEJSZMJGNOQ6OCPB6E:/var/lib/docker/overlay2/l/VMTIIXCPZ5C3SIDLTIUGGBI2PI:/var/lib/docker/overlay2/l/JJL7EWD2AE5W2D2VFIJTCP4W36:/var/lib/docker/overlay2/l/USEEXVUSWRA7FHRC7UKGC6Z6VS:/var/lib/docker/overlay2/l/MV4XBNM5TNII5FRRNA4KCZQR5S:/var/lib/docker/overlay2/l/KT2MV5JCTLLTIJ2YGUFP2KRP2D:/var/lib/docker/overlay2/l/QSCFONX7W2EOM23BSKIGRM4652:/var/lib/docker/overlay2/l/CIK7FD5N3KZK6JTJNKKUO2GHNL:/var/lib/docker/overlay2/l/C3NWA2WIARWVHXTIIR5WW7O4LC:/var/lib/docker/overlay2/l/M56AE45BJC7LOYCCN5X4V22OA5:/var/lib/docker/overlay2/l/ZYSCCJWI6TF2TQXJKLIHOXOFPA:/var/lib/docker/overlay2/l/CKMEQSG2G6UAPWV5X22FS423I6:/var/lib/docker/overlay2/l/YY2GYP5CHJNBDATHTGZIMIQNSK:/var/lib/docker/overlay2/l/7YHRHSC5U3OJY5AARFJXB6ECWW:/var/lib/docker/overlay2/l/LZKO7P5AQLV7B4KSKVVMWO2V5D:/var/lib/docker/overlay2/l/QFY7WDTHTJ543WR33Y6LFVAOPY:/var/lib/docker/overlay2/l/MK3KZNEGANV5LJBRZCIJULF3U6:/var/lib/docker/overlay2/l/URRC5ZI6UHJHGEZDQS3FJKZQM2:/var/lib/docker/overlay2/l/464EMYJ6AP5QI3TXUNWWIBKYVF:/var/lib/docker/overlay2/l/DYDWR4LPPDKEJNWIBTO6LWB3XH:/var/lib/docker/overlay2/l/ZXXFAZMXCLEGMACLV6PTVB6VKS:/var/lib/docker/overlay2/l/C7ET5ADTILVZUQS6XC5MU3DTSX:/var/lib/docker/overlay2/l/ATLLMP5WFEPAVTECZ5M2MD2CHD:/var/lib/docker/overlay2/l/4OIS7Q2Q7IZOSVGBB5D2G4W3GE:/var/lib/docker/overlay2/l/KJ3TKQ5YAG6MFJD4QZMKHIBXMA:/var/lib/docker/overlay2/l/4TWMNGZS3ULMQ3MYJGU5MOO4Z5:/var/lib/docker/overlay2/l/BBNLLMTITFVB2TXN3U7NOERVGZ:/var/lib/docker/overlay2/l/3YQHRSEDTLT7KZA66NF6R2MBC2:/var/lib/docker/overlay2/l/TWNT6NCYJ4HG77BOQIOMSM4PVL:/var/lib/docker/overlay2/l/HFYQGWUHF3ZSMHE6BCR67BBK3L:/var/lib/docker/overlay2/l/YB2DKUXKQLQSE7BVB67GHADYOR:/var/lib/docker/overlay2/l/WWEQ53RAFG6WW35WHOG7NH56I2:/var/lib/docker/overlay2/l/YZVOE4AKICEJYSRELN6TQCJKSE:/var/lib/docker/overlay2/l/TSG4QWKZOTGWSBMCG7TRHBHP43:/var/lib/docker/overlay2/l/G6W2FD7RNQ4CT6TIJLC3WPUG53,upperdir=/var/lib/docker/overlay2/19b4cd4ea4c060e1ae1fe155147a4fe51534a2acde3118f213af50d1e6107529/diff,workdir=/var/lib/docker/overlay2/19b4cd4ea4c060e1ae1fe155147a4fe51534a2acde3118f213af50d1e6107529/work",
+            "sizeGiB": 317.0,
+            "freeGiB": 159.8
+          },
+          "root": {
+            "path": "/",
+            "source": "overlay",
+            "target": "/",
+            "fstype": "overlay",
+            "options": "rw,relatime,lowerdir=/var/lib/docker/overlay2/l/V7PRPBMNIJLKRBQZ33542RVD7C:/var/lib/docker/overlay2/l/GWN3J65244RKHSHM5YMQN7K4KW:/var/lib/docker/overlay2/l/MVZOFBHTCZVZEITCK3AHACME7R:/var/lib/docker/overlay2/l/ZG4HL7L5VUU6W2FO4OMS26ABAZ:/var/lib/docker/overlay2/l/Z4B4I5TDVXT5BIF6ZSMWMMIXZM:/var/lib/docker/overlay2/l/R3AECVDP6KWMKOZIN7CWDKF6TM:/var/lib/docker/overlay2/l/6LYWJSNHRAZTNMCWEQW4J7VKBQ:/var/lib/docker/overlay2/l/22DNX35MUTIHXVS46IW646YR7L:/var/lib/docker/overlay2/l/4NGJI5OE57S2YQWVN5TS7EURAH:/var/lib/docker/overlay2/l/OHYXVB2ZEEK7EHI2ELT2S6NXSK:/var/lib/docker/overlay2/l/DDKOC6YY2MUL4FHNMQTKPDSD7Z:/var/lib/docker/overlay2/l/G5FJ325MDUTZKMWFAZNZUF26RS:/var/lib/docker/overlay2/l/NTSUPX73P7BV7MCST7M22VBMBM:/var/lib/docker/overlay2/l/A64SDCYD2VAOLMOH2XNIP3VXHT:/var/lib/docker/overlay2/l/I2E45EZI2NFCCA5Z7DGOTVZIJS:/var/lib/docker/overlay2/l/BOHOE35NXX5INF2E5Q6DAWZSFC:/var/lib/docker/overlay2/l/7GTQWL2R62PJ7CWR3WGO3CISF6:/var/lib/docker/overlay2/l/XP4UATKMIEJSZMJGNOQ6OCPB6E:/var/lib/docker/overlay2/l/VMTIIXCPZ5C3SIDLTIUGGBI2PI:/var/lib/docker/overlay2/l/JJL7EWD2AE5W2D2VFIJTCP4W36:/var/lib/docker/overlay2/l/USEEXVUSWRA7FHRC7UKGC6Z6VS:/var/lib/docker/overlay2/l/MV4XBNM5TNII5FRRNA4KCZQR5S:/var/lib/docker/overlay2/l/KT2MV5JCTLLTIJ2YGUFP2KRP2D:/var/lib/docker/overlay2/l/QSCFONX7W2EOM23BSKIGRM4652:/var/lib/docker/overlay2/l/CIK7FD5N3KZK6JTJNKKUO2GHNL:/var/lib/docker/overlay2/l/C3NWA2WIARWVHXTIIR5WW7O4LC:/var/lib/docker/overlay2/l/M56AE45BJC7LOYCCN5X4V22OA5:/var/lib/docker/overlay2/l/ZYSCCJWI6TF2TQXJKLIHOXOFPA:/var/lib/docker/overlay2/l/CKMEQSG2G6UAPWV5X22FS423I6:/var/lib/docker/overlay2/l/YY2GYP5CHJNBDATHTGZIMIQNSK:/var/lib/docker/overlay2/l/7YHRHSC5U3OJY5AARFJXB6ECWW:/var/lib/docker/overlay2/l/LZKO7P5AQLV7B4KSKVVMWO2V5D:/var/lib/docker/overlay2/l/QFY7WDTHTJ543WR33Y6LFVAOPY:/var/lib/docker/overlay2/l/MK3KZNEGANV5LJBRZCIJULF3U6:/var/lib/docker/overlay2/l/URRC5ZI6UHJHGEZDQS3FJKZQM2:/var/lib/docker/overlay2/l/464EMYJ6AP5QI3TXUNWWIBKYVF:/var/lib/docker/overlay2/l/DYDWR4LPPDKEJNWIBTO6LWB3XH:/var/lib/docker/overlay2/l/ZXXFAZMXCLEGMACLV6PTVB6VKS:/var/lib/docker/overlay2/l/C7ET5ADTILVZUQS6XC5MU3DTSX:/var/lib/docker/overlay2/l/ATLLMP5WFEPAVTECZ5M2MD2CHD:/var/lib/docker/overlay2/l/4OIS7Q2Q7IZOSVGBB5D2G4W3GE:/var/lib/docker/overlay2/l/KJ3TKQ5YAG6MFJD4QZMKHIBXMA:/var/lib/docker/overlay2/l/4TWMNGZS3ULMQ3MYJGU5MOO4Z5:/var/lib/docker/overlay2/l/BBNLLMTITFVB2TXN3U7NOERVGZ:/var/lib/docker/overlay2/l/3YQHRSEDTLT7KZA66NF6R2MBC2:/var/lib/docker/overlay2/l/TWNT6NCYJ4HG77BOQIOMSM4PVL:/var/lib/docker/overlay2/l/HFYQGWUHF3ZSMHE6BCR67BBK3L:/var/lib/docker/overlay2/l/YB2DKUXKQLQSE7BVB67GHADYOR:/var/lib/docker/overlay2/l/WWEQ53RAFG6WW35WHOG7NH56I2:/var/lib/docker/overlay2/l/YZVOE4AKICEJYSRELN6TQCJKSE:/var/lib/docker/overlay2/l/TSG4QWKZOTGWSBMCG7TRHBHP43:/var/lib/docker/overlay2/l/G6W2FD7RNQ4CT6TIJLC3WPUG53,upperdir=/var/lib/docker/overlay2/19b4cd4ea4c060e1ae1fe155147a4fe51534a2acde3118f213af50d1e6107529/diff,workdir=/var/lib/docker/overlay2/19b4cd4ea4c060e1ae1fe155147a4fe51534a2acde3118f213af50d1e6107529/work",
+            "sizeGiB": 317.0,
+            "freeGiB": 159.8
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/nvme0n1p1[/var/lib/docker/volumes/a646c759cac142549ad30484a1281b129ecd480881d7cc2da51da40cb0282887/_data]",
+            "target": "/var/lib/docker",
+            "fstype": "xfs",
+            "options": "rw,noatime,attr2,inode64,noquota",
+            "sizeGiB": 317.0,
+            "freeGiB": 159.8
+          },
+          "dockerDriver": "overlay2",
+          "devices": [
+            {
+              "name": "nvme1n1",
+              "type": "disk",
+              "sizeGiB": 32.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null
+            },
+            {
+              "name": "nvme0n1",
+              "type": "disk",
+              "sizeGiB": 317.0,
+              "model": "Amazon Elastic Block Store",
+              "rotational": false,
+              "transport": "nvme",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "nvme0n1p1",
+                  "type": "part",
+                  "sizeGiB": 317.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": null,
+                  "mountpoint": "/var/lib/docker"
+                },
+                {
+                  "name": "nvme0n1p128",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": false,
+                  "transport": "nvme",
+                  "fstype": null,
+                  "mountpoint": null
+                }
+              ]
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS14618 Amazon.com, Inc.",
+          "city": "Ashburn",
+          "region": "Virginia",
+          "country": "US"
+        },
+        "runner": {
+          "name": "f16f7cd5-45b2-485f-8880-ba07765e1642",
+          "environment": "self-hosted",
+          "imageOS": null,
+          "imageVersion": null
+        }
+      },
+      "logTail": [
+        "    Checking codex-config-schema v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/config-schema)",
+        "warning: `codex-core` (lib) generated 1 warning (run `cargo clippy --fix --lib -p codex-core -- ` to apply 1 suggestion)",
+        "    Checking codex-agent-message-board-host v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/agent-message-board-host)",
+        "    Checking codex-guardian-v2 v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/guardian-v2)",
+        "    Checking codex-mcp-extension v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/mcp)",
+        "    Checking codex-image-generation-extension v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/image-generation)",
+        "    Checking codex-web-search-extension v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/web-search)",
+        "    Checking codex-guardian-v3 v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/guardian-v3)",
+        "    Checking codex-goal-extension v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/goal)",
+        "    Checking codex-app-server-transport v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/app-server-transport)",
+        "    Checking core_test_support v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/core/tests/common)",
+        "    Checking codex-memories-write v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/memories/write)",
+        "    Checking codex-history-notes-extension v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/history-notes)",
+        "    Checking codex-queue-extension v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/queue)",
+        "    Checking codex-chatgpt v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/chatgpt)",
+        "    Checking codex-app-server-daemon v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/app-server-daemon)",
+        "    Checking codex-external-agent-migration v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/external-agent-migration)",
+        "    Checking codex-memories-extension v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/memories)",
+        "    Checking codex-lmstudio v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/lmstudio)",
+        "    Checking codex-ollama v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ollama)",
+        "    Checking app_test_support v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/app-server/tests/common)",
+        "    Checking codex-utils-oss v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/utils/oss)",
+        "    Checking codex-app-server-test-client v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/app-server-test-client)",
+        "    Checking codex-core-api v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/core-api)",
+        "    Checking codex-agent-extension v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/ext/agent)",
+        "    Checking codex-windows-sandbox-service v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/windows-sandbox-service)",
+        "    Checking codex-thread-manager-sample v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/thread-manager-sample)",
+        "    Checking codex-app-server v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/app-server)",
+        "    Checking codex-app-server-client v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/app-server-client)",
+        "    Checking codex-exec-server-cli v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/exec-server-cli)",
+        "    Checking codex-tui v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/tui)",
+        "    Checking codex-exec v0.172.0 (/codebuild/output/src2214474422/src/actions-runner/_work/benchmark-public/benchmark-public/work/codex-rs/exec)",
+        "error: could not compile `codex-core` (test \"all\")",
+        "Caused by:",
+        "  process didn't exit successfully: `/root/.rustup/toolchains/1.99.1-x86_64-unknown-linux-gnu/bin/clippy-driver /root/.rustup/toolchains/1.99.1-x86_64-unknown-linux-gnu/bin/rustc --crate-name all --edition=2024 core/tests/all.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-in",
+        "warning: build failed, waiting for other jobs to finish...",
+        "error: could not compile `codex-core` (lib test)",
+        "Caused by:",
+        "  process didn't exit successfully: `/root/.rustup/toolchains/1.99.1-x86_64-unknown-linux-gnu/bin/clippy-driver /root/.rustup/toolchains/1.99.1-x86_64-unknown-linux-gnu/bin/rustc --crate-name codex_core --edition=2024 core/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,futu",
+        "##[error]Process completed with exit code 101."
+      ]
+    },
+    {
+      "key": "boat-x64--1",
+      "runnerId": "boat-x64",
+      "provider": "boat",
+      "arch": "x64",
+      "iteration": 1,
+      "status": "success",
+      "failedAt": null,
+      "queueSeconds": 7,
+      "jobSeconds": 874,
+      "workloadSeconds": 861,
+      "createdAt": "2026-11-27T17:01:50Z",
+      "startedAt": "2026-11-27T17:01:57Z",
+      "phases": [
+        {
+          "name": "checkout",
+          "seconds": 5,
+          "status": "success"
+        },
+        {
+          "name": "system packages",
+          "seconds": 3,
+          "status": "success"
+        },
+        {
+          "name": "toolchain",
+          "seconds": 7,
+          "status": "success"
+        },
+        {
+          "name": "cargo fetch",
+          "seconds": 305,
+          "status": "success"
+        },
+        {
+          "name": "rusty_v8 prebuilt",
+          "seconds": 2,
+          "status": "success"
+        },
+        {
+          "name": "cargo build",
+          "seconds": 273,
+          "status": "success"
+        },
+        {
+          "name": "cargo clippy",
+          "seconds": 266,
+          "status": "success"
+        }
+      ],
+      "runnerName": "ci-benchmark-public-140639922034",
+      "runnerGroup": "Default",
+      "jobUrl": "https://github.com/runs-on-demo/benchmark-public/actions/runs/46038478011/job/140639922034",
+      "host": {
+        "collectedAt": "2026-11-27T17:02:02+00:00",
+        "arch": "x86_64",
+        "kernel": "6.8.0-117-generic",
+        "os": "Ubuntu 24.04.4 LTS",
+        "cpu": {
+          "model": "AMD EPYC 4585PX 16-Core Processor",
+          "vendor": "AuthenticAMD",
+          "logicalCpus": 4,
+          "threadsPerCore": 1,
+          "maxMHz": null,
+          "virtualization": "kvm",
+          "hypervisor": "KVM"
+        },
+        "memoryGiB": 7.76,
+        "memory": {
+          "swapGiB": 6.0,
+          "availableGiB": 6.98,
+          "swapDevices": [
+            {
+              "kind": "file",
+              "sizeGiB": 2.0
+            },
+            {
+              "kind": "file",
+              "sizeGiB": 4.0
+            }
+          ],
+          "overcommit": 0,
+          "swappiness": 60
+        },
+        "manufacturer": "",
+        "product": "",
+        "storage": {
+          "workspace": {
+            "path": "/home/runner/work/benchmark-public/benchmark-public",
+            "source": "/dev/vda1[/home/user]",
+            "target": "/home/runner",
+            "fstype": "ext4",
+            "options": "rw,relatime,nobarrier",
+            "sizeGiB": 78.4,
+            "freeGiB": 47.5
+          },
+          "tmp": {
+            "path": "/tmp",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,nobarrier",
+            "sizeGiB": 78.4,
+            "freeGiB": 47.5
+          },
+          "root": {
+            "path": "/",
+            "source": "/dev/vda1",
+            "target": "/",
+            "fstype": "ext4",
+            "options": "rw,relatime,nobarrier",
+            "sizeGiB": 78.4,
+            "freeGiB": 47.5
+          },
+          "docker": {
+            "path": "/var/lib/docker",
+            "source": "/dev/vdc[/docker]",
+            "target": "/var/lib/docker",
+            "fstype": "ext4",
+            "options": "rw,noatime,nobarrier",
+            "sizeGiB": 97.9,
+            "freeGiB": 92.9
+          },
+          "dockerDriver": "overlayfs",
+          "devices": [
+            {
+              "name": "vda",
+              "type": "disk",
+              "sizeGiB": 80.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": null,
+              "children": [
+                {
+                  "name": "vda1",
+                  "type": "part",
+                  "sizeGiB": 79.7,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "ext4",
+                  "mountpoint": "/"
+                },
+                {
+                  "name": "vda14",
+                  "type": "part",
+                  "sizeGiB": 0.0,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": null,
+                  "mountpoint": null
+                },
+                {
+                  "name": "vda15",
+                  "type": "part",
+                  "sizeGiB": 0.2,
+                  "model": null,
+                  "rotational": true,
+                  "transport": "virtio",
+                  "fstype": "vfat",
+                  "mountpoint": "/boot/efi"
+                }
+              ]
+            },
+            {
+              "name": "vdb",
+              "type": "disk",
+              "sizeGiB": 0.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": "iso9660",
+              "mountpoint": null
+            },
+            {
+              "name": "vdc",
+              "type": "disk",
+              "sizeGiB": 100.0,
+              "model": null,
+              "rotational": true,
+              "transport": "virtio",
+              "fstype": null,
+              "mountpoint": "/mnt/boat-docker"
+            }
+          ]
+        },
+        "ec2": null,
+        "runsOn": null,
+        "network": {
+          "org": "AS16276 OVH SAS",
+          "city": "Warsaw",
+          "region": "Mazovia",
+          "country": "PL"
+        },
+        "runner": {
+          "name": "ci-benchmark-public-140639922034",
+          "environment": "self-hosted",
+          "imageOS": null,
+          "imageVersion": null
+        }
+      }
+    }
+  ]
+}
