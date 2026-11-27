@@ -84,14 +84,14 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           repository: openai/codex
-          ref: 181d051417b3d5a4af558a188897e4c90f8eb5a8
+          ref: 3d86e43b075adeba2193ec5c22ac92f55afd82e6 # rust-v0.172.0
           path: work
           persist-credentials: false
       - name: "phase: system packages"
         # Codex's own Linux CI dependencies (rust-ci-full.yml).
         run: |
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
             build-essential pkg-config libcap-dev libasound2-dev
       - name: "phase: toolchain"
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, 2026-09-30
@@ -107,9 +107,12 @@ jobs:
         working-directory: work/codex-rs
         run: cargo build --locked --bin codex
       - name: "phase: cargo clippy"
-        # Codex's own Linux PR gate: the whole workspace with tests.
+        # The whole workspace with its tests, as Codex's Linux CI lints it, but
+        # lints stay warnings (the time is the point, not the verdict), and
+        # codex-voice-host is left out: it needs GStreamer 1.28, newer than
+        # Ubuntu 24.04's.
         working-directory: work/codex-rs
-        run: cargo clippy --locked --tests -- -D warnings
+        run: cargo clippy --locked --workspace --exclude codex-voice-host --tests
       - name: Diagnostics
         if: always() && steps.harness.outcome == 'success'
         working-directory: work
