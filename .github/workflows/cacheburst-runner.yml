@@ -1,0 +1,144 @@
+name: Cache restore burst, one runner (experiment)
+
+# One runner: seed a cache entry, restore it from one job alone (baseline),
+# then from a burst of jobs released at the same wall-clock instant. Called
+# once per runner by cacheburst.yml. Every restore job uploads one small JSON
+# (cb-<runner>-<stage>-<slot>) that the collect job merges.
+on:
+  workflow_call:
+    inputs:
+      id: { type: string, required: true }
+      provider: { type: string, required: true }
+      cache-action: { type: string, required: true }
+      cache-key: { type: string, required: true }
+      seed-label: { type: string, required: true }
+      single-label: { type: string, required: true }
+      burst-labels: { type: string, required: true }
+      slots: { type: string, required: true }
+      size-mib: { type: number, required: true }
+
+permissions:
+  contents: read
+
+env:
+  CB_PATH: cb-data
+  CB_KEY: ${{ inputs.cache-key }}
+  CB_SIZE_MIB: ${{ inputs.size-mib }}
+  CB_ID: ${{ inputs.id }}
+
+jobs:
+  seed:
+    runs-on: ${{ fromJSON(inputs.seed-label) }}
+    timeout-minutes: 30
+    steps:
+      - name: Magic Cache
+        if: inputs.provider == 'RunsOn'
+        uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d # v2.4.0
+      - name: Generate data
+        # Incompressible, 64 MiB files: the restore measures transfer and
+        # unpacking, not zstd.
+        run: |
+          mkdir -p "$CB_PATH"
+          for i in $(seq 1 $((CB_SIZE_MIB / 64))); do head -c 64M /dev/urandom > "$CB_PATH/f$i"; done
+          du -sb "$CB_PATH"
+      - name: Save
+        if: inputs.cache-action == 'actions/cache'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with: &save
+          path: cb-data
+          key: ${{ inputs.cache-key }}
+      - name: Save
+        if: inputs.cache-action == 'WarpBuilds/cache'
+        uses: WarpBuilds/cache/save@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
+        with: *save
+
+  single:
+    needs: seed
+    runs-on: ${{ fromJSON(inputs.single-label) }}
+    timeout-minutes: 30
+    env:
+      CB_STAGE: single
+      CB_SLOT: "0"
+      CB_RELEASE: "0"
+    outputs:
+      release: ${{ steps.release.outputs.release }}
+    steps: &restore-steps
+      - name: Magic Cache
+        if: inputs.provider == 'RunsOn'
+        uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d # v2.4.0
+      - name: Wait for the burst release
+        # Every burst job sleeps until the same instant, so the restores start
+        # together whatever each runner's boot time. A job that arrives late
+        # starts at once and is flagged.
+        run: |
+          now=$(date +%s)
+          echo "ready=$now" >> "$GITHUB_ENV"
+          if [ "$CB_RELEASE" -gt "$now" ]; then sleep $((CB_RELEASE - now)); fi
+      - name: Start
+        run: echo "t0=$(date +%s.%N)" >> "$GITHUB_ENV"
+      - name: Restore
+        id: restore-gha
+        if: inputs.cache-action == 'actions/cache'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with: &restore
+          path: cb-data
+          key: ${{ inputs.cache-key }}
+          fail-on-cache-miss: true
+      - name: Restore
+        id: restore-warp
+        if: inputs.cache-action == 'WarpBuilds/cache'
+        uses: WarpBuilds/cache/restore@dad44e2487e9dc889ad6e6bd198e77bb2d828eee # v2.0.0
+        with: *restore
+      - name: Record
+        if: always()
+        env:
+          HIT: ${{ steps.restore-gha.outputs.cache-hit || steps.restore-warp.outputs.cache-hit }}
+        run: |
+          t1=$(date +%s.%N)
+          bytes=$(du -sb "$CB_PATH" 2>/dev/null | cut -f1)
+          mkdir -p out
+          python3 - "$t1" "${bytes:-0}" <<'PY'
+          import json, os, platform, sys
+          e = os.environ
+          t0, t1, b = float(e["t0"]), float(sys.argv[1]), int(sys.argv[2])
+          rec = {
+              "runner": e["CB_ID"], "stage": e["CB_STAGE"], "slot": int(e["CB_SLOT"]),
+              "release": int(e["CB_RELEASE"]), "ready": int(e["ready"]),
+              "start": t0, "end": t1, "seconds": round(t1 - t0, 3),
+              "bytes": b, "expected": int(e["CB_SIZE_MIB"]) * 1048576,
+              "hit": e.get("HIT", ""), "host": platform.node(), "nproc": os.cpu_count(),
+              "runnerName": e.get("RUNNER_NAME", ""),
+          }
+          rec["ok"] = rec["bytes"] == rec["expected"]
+          print(json.dumps(rec))
+          json.dump(rec, open(f"out/{e['CB_ID']}-{e['CB_STAGE']}-{e['CB_SLOT']}.json", "w"))
+          PY
+      - name: Release time for the burst
+        id: release
+        if: env.CB_STAGE == 'single'
+        run: echo "release=$(( $(date +%s) + 180 ))" >> "$GITHUB_OUTPUT"
+      - name: Verify
+        run: test "$(du -sb "$CB_PATH" | cut -f1)" -eq $((CB_SIZE_MIB * 1048576))
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cb-${{ inputs.id }}-${{ env.CB_STAGE }}-${{ env.CB_SLOT }}
+          path: out/
+          retention-days: 7
+
+  burst:
+    needs: single
+    if: ${{ !cancelled() && needs.single.outputs.release != '' }}
+    name: burst ${{ matrix.slot }}
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: ${{ fromJSON(inputs.slots) }}
+    runs-on: ${{ fromJSON(inputs.burst-labels)[matrix.slot] }}
+    timeout-minutes: 30
+    env:
+      CB_STAGE: burst
+      CB_SLOT: ${{ matrix.slot }}
+      CB_RELEASE: ${{ needs.single.outputs.release }}
+    steps: *restore-steps

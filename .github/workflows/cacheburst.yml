@@ -1,0 +1,98 @@
+name: Cache restore burst (experiment)
+
+# Branch-only experiment: does a cache restore slow down when many jobs read
+# the same entry at once? Per runner (cacheburst-runner.yml): seed one entry,
+# restore it alone, then from a burst of jobs released at the same instant.
+# Results go to experiments/<branch>/cacheburst/, never to results/.
+on:
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "comma-separated runner ids (empty: triggers/cacheburst.json)"
+        required: false
+        default: ""
+      burst:
+        description: "jobs in the burst, 1 to 20 (empty: trigger file)"
+        required: false
+        default: ""
+  push:
+    branches: [claude/project-thread-ddtm55]
+    paths:
+      - triggers/cacheburst.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cacheburst-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    # The first push of a new branch matches every paths filter: never a run.
+    if: github.event_name != 'push' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - id: plan
+        env:
+          RUNNERS: ${{ inputs.runners }}
+          BURST: ${{ inputs.burst }}
+        run: python3 bin/cacheburst-plan.py
+
+  runner:
+    needs: plan
+    name: ${{ matrix.id }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    uses: ./.github/workflows/cacheburst-runner.yml
+    with:
+      id: ${{ matrix.id }}
+      provider: ${{ matrix.provider }}
+      cache-action: ${{ matrix.cacheAction }}
+      cache-key: ${{ matrix.cacheKey }}
+      seed-label: ${{ matrix.seedLabel }}
+      single-label: ${{ matrix.singleLabel }}
+      burst-labels: ${{ matrix.burstLabels }}
+      slots: ${{ matrix.slots }}
+      size-mib: ${{ matrix.sizeMiB }}
+
+  collect:
+    needs: [plan, runner]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: cb-*
+          path: raw
+          merge-multiple: true
+      - name: Summarise and commit
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          d="experiments/$BRANCH/cacheburst"
+          mkdir -p "$d"
+          f="$d/$(date -u +%F)-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+          python3 bin/cacheburst-summary.py raw "$f"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$d"
+          git commit -m "experiment: cacheburst $GITHUB_RUN_ID"
+          for i in 1 2 3 4; do git pull --rebase -q origin "$BRANCH" && git push origin "HEAD:$BRANCH" && break; sleep $((i * 5)); done
+      - name: Delete this run's GitHub cache entries
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh cache list --key "cacheburst-" --limit 100 --json key --jq '.[].key' \
+            | grep -- "-$GITHUB_RUN_ID-" | while read -r k; do gh cache delete "$k" || true; done
