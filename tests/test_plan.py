@@ -130,6 +130,13 @@ class UniqueLabels(unittest.TestCase):
             labels = [j["label"] for j in plan["jobs"] if isinstance(j["label"], str) and j["label"].startswith("runs-on=")]
             self.assertEqual(len(labels), len(set(labels)), suite)
 
+    def test_codex_runs_only_4_vcpu_runners(self):
+        rc, out, plan, err = run_plan("codex", None)
+        self.assertEqual(rc, 0, err)
+        vcpu = {r["id"]: r["vcpu"] for r in RUNNERS}
+        self.assertTrue(plan["jobs"])
+        self.assertEqual({vcpu[j["id"]] for j in plan["jobs"]}, {4})
+
     def test_other_providers_labels_are_untouched(self):
         # Outside a workflow run, plan.py fills {run_id} with "0" and {run_attempt} with "1".
         checked = 0

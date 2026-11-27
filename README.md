@@ -32,8 +32,11 @@ comes from the runner, not from the project being built.
 
 [config/runners.json](config/runners.json) lists every runner label, the shape
 it advertises, and which suites it joins. Runners from 2 to 12 vCPU (x64 and
-arm64) join every race suite: `rust`, `codex`, `node`, `docker`, `hardware`,
-`cache` and `burst`. The 16 vCPU EC2 types (`m8id.4xlarge`, `i7i.4xlarge`) run only in
+arm64) join every race suite: `rust`, `node`, `docker`, `hardware`,
+`cache` and `burst`. `codex` runs only each provider's 4 vCPU runner, x64 and
+arm64 where it has both (plus the Ubicloud and Sengi premium tiers): a cold
+Codex build takes 15 to 40 minutes, and 2 vCPU runners mostly run out of disk
+or memory. The 16 vCPU EC2 types (`m8id.4xlarge`, `i7i.4xlarge`) run only in
 `ec2-storage`, where they show how local NVMe scales; they don't race smaller
 runners. The `ec2-<instance type>` runners (`ec2-c6a-large`, `ec2-m9g-large`,
 …) run only in `ec2-cpu`: they measure an EC2 type, not a CI runner, and never
