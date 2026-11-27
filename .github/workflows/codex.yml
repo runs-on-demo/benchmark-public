@@ -105,6 +105,25 @@ jobs:
         # cargo rewrites those entries; no dependency changes.
         working-directory: work/codex-rs
         run: cargo fetch
+      - name: "phase: rusty_v8 prebuilt"
+        # The workspace's tests pull in V8 (openai-oss-forks/rusty_v8), whose
+        # prebuilt library Codex publishes on its own releases, not
+        # denoland's. Same download and checksum check as Codex's
+        # .github/actions/setup-rusty-v8.
+        working-directory: work/codex-rs
+        run: |
+          set -euo pipefail
+          v=$(awk '/^name = "v8"$/ {getline; gsub(/version = |"/, ""); print; exit}' Cargo.lock)
+          t=$(rustc -vV | sed -n 's/^host: //p')
+          p=ptrcomp_sandbox_release
+          d="$RUNNER_TEMP/rusty_v8"
+          mkdir -p "$d"
+          for f in "rusty_v8_${p}_${t}.sha256" "librusty_v8_${p}_${t}.a.gz" "src_binding_${p}_${t}.rs"; do
+            curl -fsSL --retry 3 "https://github.com/openai/codex/releases/download/rusty-v8-v${v}/${f}" -o "$d/$f"
+          done
+          (cd "$d" && tr -d '\r' < "rusty_v8_${p}_${t}.sha256" | sha256sum --check -)
+          echo "RUSTY_V8_ARCHIVE=$d/librusty_v8_${p}_${t}.a.gz" >> "$GITHUB_ENV"
+          echo "RUSTY_V8_SRC_BINDING_PATH=$d/src_binding_${p}_${t}.rs" >> "$GITHUB_ENV"
       - name: "phase: cargo build"
         # The codex CLI binary, debug profile.
         working-directory: work/codex-rs
