@@ -143,6 +143,21 @@ def fio(name, rw, bs, iodepth, jobs, extra, runtime=20):
 
 # Filesystems that keep their files in memory: a figure measured on one is RAM, not a disk.
 RAM_FSTYPES = {"tmpfs", "ramfs"}
+# Block devices that live in memory: zram, the brd RAM disk (/dev/ram0), null_blk, persistent memory.
+RAM_DEVICE = re.compile(r"^(zram\d+|ram\d+|nullb\d+|pmem\d+)")
+
+
+def ram_device(source):
+    """Whether a mount's source is a RAM block device, or a device mapper /
+    md device built only from RAM ones (its /sys/block/<dev>/slaves)."""
+    if not source or not source.startswith("/dev/"):
+        return False
+    name = os.path.basename(os.path.realpath(re.sub(r"\[.*\]$", "", source)))
+    if RAM_DEVICE.match(name):
+        return True
+    slaves = pathlib.Path("/sys/block") / name / "slaves"
+    parts = [p.name for p in slaves.iterdir()] if slaves.is_dir() else []
+    return bool(parts) and all(RAM_DEVICE.match(p) for p in parts)
 
 
 def mount_of(path):
@@ -158,7 +173,8 @@ def mount_of(path):
 def disk_backing(path):
     """What fio's files really sit on: the mount, and for an overlay the mount
     under its upper layer (where writes land). `ram` is true when that is a
-    tmpfs or ramfs (a workspace in RAM, whatever its top mount says)."""
+    tmpfs or ramfs, or a RAM block device (zram, /dev/ram*, null_blk, pmem)
+    under any filesystem: a workspace in RAM, whatever its top mount says."""
     mount = mount_of(path)
     if not mount:
         return None
@@ -170,7 +186,7 @@ def disk_backing(path):
             out["upperdir"] = upper.group(1)
             lower = mount_of(upper.group(1)) or mount
             out["upper"] = lower
-    out["ram"] = lower["fstype"] in RAM_FSTYPES
+    out["ram"] = lower["fstype"] in RAM_FSTYPES or ram_device(lower.get("source"))
     return out
 
 

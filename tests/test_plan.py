@@ -306,6 +306,9 @@ class HardwareGroups(unittest.TestCase):
             ({"/ws": overlay("/mnt/tmp/upper"), "/mnt/tmp/upper": {"target": "/mnt/tmp", "source": "/dev/vdb", "fstype": "ext4", "options": "rw"}}, False),
             ({"/ws": {"target": "/", "source": "/dev/vda", "fstype": "ext4", "options": "rw"}}, False),
             ({"/ws": {"target": "/home/runner", "source": "tmpfs", "fstype": "tmpfs", "options": "rw"}}, True),
+            ({"/ws": {"target": "/home/runner", "source": "/dev/zram1", "fstype": "ext4", "options": "rw"}}, True),
+            ({"/ws": overlay("/mnt/fast/upper"), "/mnt/fast/upper": {"target": "/mnt/fast", "source": "/dev/ram0", "fstype": "xfs", "options": "rw"}}, True),
+            ({"/ws": {"target": "/", "source": "/dev/nvme0n1p1", "fstype": "ext4", "options": "rw"}}, False),
         ]
         for mounts, ram in cases:
             hw.mount_of = lambda path, m=mounts: m.get(str(path))
