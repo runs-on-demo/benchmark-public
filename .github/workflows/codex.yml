@@ -100,19 +100,22 @@ jobs:
           toolchain: 1.99.1
           components: clippy, rustfmt, rust-src
       - name: "phase: cargo fetch"
+        # No --locked: Codex's release commits bump the workspace version in
+        # Cargo.toml but not in Cargo.lock (codex-cli stays 0.0.0 there), so
+        # cargo rewrites those entries; no dependency changes.
         working-directory: work/codex-rs
-        run: cargo fetch --locked
+        run: cargo fetch
       - name: "phase: cargo build"
         # The codex CLI binary, debug profile.
         working-directory: work/codex-rs
-        run: cargo build --locked --bin codex
+        run: cargo build --bin codex
       - name: "phase: cargo clippy"
         # The whole workspace with its tests, as Codex's Linux CI lints it, but
         # lints stay warnings (the time is the point, not the verdict), and
         # codex-voice-host is left out: it needs GStreamer 1.28, newer than
         # Ubuntu 24.04's.
         working-directory: work/codex-rs
-        run: cargo clippy --locked --workspace --exclude codex-voice-host --tests
+        run: cargo clippy --workspace --exclude codex-voice-host --tests
       - name: Diagnostics
         if: always() && steps.harness.outcome == 'success'
         working-directory: work
