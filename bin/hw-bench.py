@@ -141,15 +141,153 @@ def fio(name, rw, bs, iodepth, jobs, extra, runtime=20):
     }
 
 
+# Filesystems that keep their files in memory: a figure measured on one is RAM, not a disk.
+RAM_FSTYPES = {"tmpfs", "ramfs"}
+# Block devices that live in memory: zram, the brd RAM disk (/dev/ram0), null_blk, persistent memory.
+RAM_DEVICE = re.compile(r"^(zram\d+|ram\d+|nullb\d+|pmem\d+)")
+
+
+def ram_device(source):
+    """Whether a mount's source is a RAM block device, or a device mapper /
+    md device built only from RAM ones (its /sys/block/<dev>/slaves)."""
+    if not source or not source.startswith("/dev/"):
+        return False
+    name = os.path.basename(os.path.realpath(re.sub(r"\[.*\]$", "", source)))
+    if RAM_DEVICE.match(name):
+        return True
+    slaves = pathlib.Path("/sys/block") / name / "slaves"
+    parts = [p.name for p in slaves.iterdir()] if slaves.is_dir() else []
+    return bool(parts) and all(RAM_DEVICE.match(p) for p in parts)
+
+
+def mount_of(path):
+    """The mount holding a path: {target, source, fstype, options}, from findmnt."""
+    text = sh(["findmnt", "-J", "-T", str(path), "-o", "TARGET,SOURCE,FSTYPE,OPTIONS"], check=False, timeout=30)
+    try:
+        fs = json.loads(text)["filesystems"][0]
+    except (ValueError, KeyError, IndexError):
+        return None
+    return {k: fs.get(k) for k in ("target", "source", "fstype", "options")}
+
+
+def disk_backing(path):
+    """What fio's files really sit on: the mount, and for an overlay the mount
+    under its upper layer (where writes land). `ram` is true when that is a
+    tmpfs or ramfs, or a RAM block device (zram, /dev/ram*, null_blk, pmem)
+    under any filesystem: a workspace in RAM, whatever its top mount says."""
+    mount = mount_of(path)
+    if not mount:
+        return None
+    out = {"mount": mount}
+    lower = mount
+    if mount["fstype"] == "overlay":
+        upper = re.search(r"(?:^|,)upperdir=([^,]+)", mount.get("options") or "")
+        if upper:
+            path = upper.group(1)
+            out["upperdir"] = path
+            found = mount_of(path)
+            # The upper layer often sits outside the job's mount namespace (a container's
+            # rootfs, a tmpfs detached once the overlay is up): findmnt then answers with
+            # some other mount, the overlay itself or "/". Only a mount holding the path counts.
+            if found and found != mount and (found["target"] == "/" or path.startswith(found["target"].rstrip("/") + "/")) and found["fstype"] != "overlay":
+                lower = out["upper"] = found
+            else:
+                lower = None
+                out["upper"] = None
+                # Unresolved: the path's own words are all there is ("/run/starsling-tmpfs.*").
+                out["ram"] = bool(re.search(r"tmpfs|ramfs|(^|/)shm(/|$)", path))
+                return out
+    out["ram"] = lower["fstype"] in RAM_FSTYPES or ram_device(lower.get("source"))
+    return out
+
+
+GIB = 2**30
+# The sustained write: 24 GiB, or what the disk holds with SUSTAINED_HEADROOM_GIB
+# left (the default volumes of RunsOn and of GitHub's 2 vCPU runners have about
+# 11 GiB free). Direct I/O already bypasses the VM's page cache and disk.backing
+# names a RAM disk: the size is there to wear out a host-side write-back cache.
+# Capped in time so a slow disk does not hold the job.
+SUSTAINED_TARGET_GIB = 24
+SUSTAINED_MIN_GIB = 4
+SUSTAINED_MAX_SECONDS = 300
+# Room left on the filesystem after the file, so a job never fills its own disk.
+SUSTAINED_HEADROOM_GIB = 4
+
+
+def mem_total_bytes():
+    with open("/proc/meminfo") as f:
+        for line in f:
+            if line.startswith("MemTotal:"):
+                return int(line.split()[1]) * 1024
+    return 0
+
+
+def maybe_ram(backing, usage):
+    """A workspace no block device is seen under, about the size of RAM: it may
+    be a RAM disk the mount table hides. Writing it full could take the job's
+    memory, so the sustained write skips it."""
+    if backing is None:
+        return usage.total <= 1.1 * mem_total_bytes()
+    under = backing.get("upper") if backing.get("upperdir") else backing.get("mount")
+    on_device = bool(under and str(under.get("source") or "").startswith("/dev/"))
+    return not on_device and usage.total <= 1.1 * mem_total_bytes()
+
+
+def sustained_write(ram, backing=None):
+    """One long sequential write, direct I/O, flushed at the end (end_fsync),
+    timed over the whole file. `fits` is 1 when the full target was written.
+    A workspace in RAM is not written: a RAM disk filled to the brim takes the
+    job's memory with it."""
+    target = SUSTAINED_TARGET_GIB * GIB
+    usage = shutil.disk_usage(FIO_DIR)
+    free = usage.free
+    size = min(target, free - SUSTAINED_HEADROOM_GIB * GIB) // 2**20 * 2**20
+    out = {"targetGiB": SUSTAINED_TARGET_GIB, "freeGiB": round(free / GIB, 1), "fits": int(size >= target)}
+    if ram or size < SUSTAINED_MIN_GIB * GIB:
+        return out
+    if maybe_ram(backing, usage):
+        out["skipped"] = "workspace the size of RAM, on no visible block device"
+        return out
+    data = json.loads(
+        sh(
+            [
+                "fio", "--name=sustainedWrite", f"--directory={FIO_DIR}", "--ioengine=libaio", "--direct=1",
+                "--bs=1M", "--iodepth=32", "--numjobs=1", f"--size={size}", "--rw=write",
+                "--fallocate=none", "--refill_buffers=1", "--end_fsync=1",
+                f"--runtime={SUSTAINED_MAX_SECONDS}", "--output-format=json",
+                "--filename_format=sustainedWrite.$jobnum",
+            ],
+            timeout=SUSTAINED_MAX_SECONDS + 300,
+        )
+    )
+    job = data["jobs"][0]
+    written = job["write"]["io_bytes"]
+    # job_runtime is in ms and covers the final fsync: the rate the disk kept up, not the cache's.
+    seconds = job.get("job_runtime", 0) / 1000
+    out.update(
+        writtenGiB=round(written / GIB, 1),
+        seconds=round(seconds, 1),
+        MiBps=round(written / 2**20 / seconds, 1) if seconds else None,
+    )
+    return out
+
+
 def group_disk():
     shutil.rmtree(FIO_DIR, ignore_errors=True)
     FIO_DIR.mkdir(parents=True)
     out = {"directory": str(FIO_DIR)}
     try:
+        backing = disk_backing(FIO_DIR)
+        if backing:
+            out["backing"] = backing
         for test in FIO_TESTS:
             out[test[0]] = fio(*test)
             for f in FIO_DIR.glob("*"):
                 f.unlink()
+        try:
+            out["sustainedWrite"] = sustained_write(bool(backing and backing["ram"]), backing)
+        except (RuntimeError, subprocess.TimeoutExpired, ValueError, KeyError) as e:
+            print(f"sustained write failed: {e}", flush=True)
     finally:
         shutil.rmtree(FIO_DIR, ignore_errors=True)
     return {"disk": out}
