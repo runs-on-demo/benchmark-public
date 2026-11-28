@@ -1,0 +1,130 @@
+# One-off measurement for runs-on.com's CodeQL guide
+# (https://runs-on.com/github-actions/codeql/): how long a CodeQL scan of a
+# pinned open-source project takes on each runner. Not a benchmark suite:
+# nothing is published to results/, and nothing is uploaded to code scanning.
+# The guide's figures are the median of 5 runs per scan and runner (Nov 2026).
+# Dispatch only, never on a schedule or a push: a full pass is 125 jobs.
+# Dispatch it on another branch (gh workflow run codeql.yml --ref <branch>):
+# the scans build third-party code, which could write Actions cache entries in
+# the scope of the branch it runs on, so it refuses to run on the default
+# branch, whose caches every other workflow reads.
+name: CodeQL timing
+
+on:
+  workflow_dispatch:
+    inputs:
+      scans:
+        description: "Comma-separated scans (kafka-java-none, kafka-java-autobuild, terraform-go, grafana-ts, django-python); empty: all"
+        required: false
+        default: ""
+      iterations:
+        description: "Runs per scan and runner, 1 to 5"
+        required: false
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    if: github.ref_name != github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - id: plan
+        env:
+          RUN_ID: ${{ github.run_id }}
+          SCANS: ${{ inputs.scans }}
+          ITERATIONS: ${{ inputs.iterations }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          rid = os.environ["RUN_ID"]
+          scans = [
+              dict(scan="kafka-java-none", repo="apache/kafka", sha="13f70256db3c994c590e5d262a7cc50b9e973204", language="java-kotlin", mode="none"),
+              dict(scan="kafka-java-autobuild", repo="apache/kafka", sha="13f70256db3c994c590e5d262a7cc50b9e973204", language="java-kotlin", mode="autobuild"),
+              dict(scan="terraform-go", repo="hashicorp/terraform", sha="e15f8b30b6e1ecf0d09bbe143c1525d9d2d51b54", language="go", mode="manual", build="go build ./..."),
+              dict(scan="grafana-ts", repo="grafana/grafana", sha="92f1fba9b4b6700328e99e97328d6639df8ddc3d", language="javascript-typescript", mode="none"),
+              dict(scan="django-python", repo="django/django", sha="3cff3209e35a560f94801d428cf7f2a3ecb2a051", language="python", mode="none"),
+          ]
+          ro = "runs-on={id},family={family},image=ubuntu24-full-x64,ssh=false,retry=false,env=demo"
+          runners = [
+              dict(runner="github-2x8", label="github24-2cpu-x64"),
+              dict(runner="github-4x16", label="ubuntu-24.04"),
+              dict(runner="runson-4x16", family="m8a.xlarge"),
+              dict(runner="runson-8x32", family="m8a.2xlarge"),
+              dict(runner="runson-8x64", family="r8a.2xlarge"),
+          ]
+          only = [x.strip() for x in os.environ.get("SCANS", "").split(",") if x.strip()]
+          known = {s["scan"] for s in scans}
+          unknown = sorted(set(only) - known)
+          if unknown:
+              raise SystemExit(f"unknown scans: {unknown}")
+          n = int(os.environ.get("ITERATIONS") or 1)
+          if not 1 <= n <= 5:
+              raise SystemExit("iterations must be 1 to 5")
+          include = []
+          for s in scans:
+              if only and s["scan"] not in only:
+                  continue
+              for r in runners:
+                  for i in range(1, n + 1):
+                      key = f'{s["scan"]}__{r["runner"]}__{i}'
+                      label = r.get("label") or ro.format(id=f"{rid}-{key}".replace("__", "-"), family=r["family"])
+                      include.append({**s, "runner": r["runner"], "label": label, "key": key})
+          print("matrix=" + json.dumps({"include": include}))
+          PY
+
+  scan:
+    needs: plan
+    name: ${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 150
+    steps:
+      - name: Host info
+        run: |
+          nproc; free -g | head -2; df -h "$GITHUB_WORKSPACE" | tail -1
+          grep -m1 "model name" /proc/cpuinfo
+          TOKEN=$(curl -s -m 2 -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 60" || true)
+          [ -n "$TOKEN" ] && echo "instance-type=$(curl -s -m 2 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-type) lifecycle=$(curl -s -m 2 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-life-cycle)" || true
+      - name: Checkout target
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: ${{ matrix.repo }}
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Set up Java
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: CodeQL init
+        uses: github/codeql-action/init@5895b2c9be147bc7f1c75ce72c5cb577febb1907 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.mode }}
+          dependency-caching: false
+      - name: Build
+        if: matrix.mode == 'manual'
+        env:
+          BUILD: ${{ matrix.build }}
+        run: bash -c "$BUILD"
+      - name: CodeQL analyze
+        uses: github/codeql-action/analyze@5895b2c9be147bc7f1c75ce72c5cb577febb1907 # v4
+        with:
+          category: "/language:${{ matrix.language }}"
+          upload: never
